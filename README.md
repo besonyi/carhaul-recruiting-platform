@@ -2,6 +2,16 @@
 
 A mobile-first recruiting site and staff CRM for CDL-A company drivers and owner operators. See [Phase 1 scope](PLAN.md).
 
+## Codex CLI in PowerShell
+
+Open PowerShell at the repository root and run:
+
+```powershell
+.\Start-Codex.cmd
+```
+
+The launcher opens the installed Codex CLI in this checkout. It uses this repository's `AGENTS.md` and adds the matching portable Node distribution under `%LOCALAPPDATA%\CarhaulRecruiting\Node` to the CLI process if present. Check the account from this checkout with `.\Start-Codex.cmd login status` or pass a prompt as the first argument. With a regular Node installation on PATH, `codex --cd .` also opens the project.
+
 ## Local development
 
 Install Node.js 22 or newer with npm and Docker with Compose v2. Start from the repository root.

@@ -1,0 +1,19 @@
+@echo off
+setlocal EnableExtensions
+
+set "CARHAUL_ROOT=%~dp0."
+set "CARHAUL_CODEX=%LOCALAPPDATA%\Programs\OpenAI\Codex\bin\codex.exe"
+if not exist "%CARHAUL_CODEX%" set "CARHAUL_CODEX=codex.exe"
+
+set "CARHAUL_NODE_VERSION="
+set /p CARHAUL_NODE_VERSION=<"%CARHAUL_ROOT%\.node-version"
+set "CARHAUL_MACHINE=%PROCESSOR_ARCHITECTURE%"
+if defined PROCESSOR_ARCHITEW6432 set "CARHAUL_MACHINE=%PROCESSOR_ARCHITEW6432%"
+set "CARHAUL_NODE_ARCH="
+if /i "%CARHAUL_MACHINE%"=="AMD64" set "CARHAUL_NODE_ARCH=x64"
+if /i "%CARHAUL_MACHINE%"=="ARM64" set "CARHAUL_NODE_ARCH=arm64"
+set "CARHAUL_NODE=%LOCALAPPDATA%\CarhaulRecruiting\Node\node-v%CARHAUL_NODE_VERSION%-win-%CARHAUL_NODE_ARCH%"
+if defined CARHAUL_NODE_ARCH if exist "%CARHAUL_NODE%\npm.cmd" set "PATH=%CARHAUL_NODE%;%PATH%"
+
+"%CARHAUL_CODEX%" --cd "%CARHAUL_ROOT%" %*
+exit /b %ERRORLEVEL%
