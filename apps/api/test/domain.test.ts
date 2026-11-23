@@ -6,6 +6,7 @@ import { passwordHash, rateLimitClient, sessionHash, sessionToken, verifyPasswor
 import { draftAnswers, extendedAnswers, extendedSubmission } from '../src/extended-application';
 import { authenticatorKey, decryptMfaSecret, encryptMfaSecret, matchingTotpStep, readMfaKey } from '../src/staff-mfa';
 import { reportWindow, summarizeReport } from '../src/recruiting-report';
+import { scheduleInterviewInput, updateInterviewInput } from '../src/interviews';
 
 const applicant = {
   name: 'Test Applicant', phone: '(202) 555-0101', email: 'Applicant@example.test',
@@ -167,4 +168,14 @@ test('validates contact direction, outcome and occurrence time', () => {
   assert.equal(contactInput.safeParse({ ...call, channel: 'EMAIL', direction: 'OUTBOUND', outcome: 'MESSAGE_RECEIVED' }).success, false);
   assert.equal(contactInput.safeParse({ ...call, occurredAt: new Date(Date.now() + 60_000).toISOString() }).success, false);
   assert.equal(contactInput.parse({ ...call, occurredAt: '2020-01-02T09:30:00-06:00' }).occurredAt?.toISOString(), '2020-01-02T15:30:00.000Z');
+});
+
+test('validates interview schedules, outcomes and revision numbers', () => {
+  const interview = { id: crypto.randomUUID(), assigneeId: crypto.randomUUID(), format: 'VIDEO', minutes: 30, scheduledAt: '2027-01-02T10:30:00-06:00' };
+  assert.equal(scheduleInterviewInput.parse(interview).scheduledAt.toISOString(), '2027-01-02T16:30:00.000Z');
+  assert.equal(scheduleInterviewInput.safeParse({ ...interview, minutes: 0 }).success, false);
+  assert.equal(scheduleInterviewInput.safeParse({ ...interview, scheduledAt: '2027-01-02T16:30' }).success, false);
+  assert.equal(updateInterviewInput.safeParse({ action: 'close', revision: 1, status: 'NO_SHOW' }).success, true);
+  assert.equal(updateInterviewInput.safeParse({ action: 'close', revision: -1, status: 'COMPLETED' }).success, false);
+  assert.equal(updateInterviewInput.safeParse({ action: 'close', revision: 1, status: 'SCHEDULED' }).success, false);
 });

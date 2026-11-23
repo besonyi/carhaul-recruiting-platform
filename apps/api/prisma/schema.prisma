@@ -56,6 +56,19 @@ enum ContactOutcome {
   MESSAGE_RECEIVED
 }
 
+enum InterviewFormat {
+  PHONE
+  VIDEO
+  IN_PERSON
+}
+
+enum InterviewStatus {
+  SCHEDULED
+  COMPLETED
+  NO_SHOW
+  CANCELED
+}
+
 model Staff {
   id           String @id @default(uuid())
   email        String @unique
@@ -68,6 +81,7 @@ model Staff {
   candidates   Candidate[]
   followUps    FollowUp[]
   contacts     CandidateContact[]
+  interviews   CandidateInterview[]
 }
 
 model Session {
@@ -116,6 +130,7 @@ model Candidate {
   extendedApplication ExtendedApplication?
   notes        Note[]
   contacts     CandidateContact[]
+  interviews   CandidateInterview[]
   audit        Audit[]
   followUps    FollowUp[]
 
@@ -202,6 +217,25 @@ model FollowUp {
 
   @@index([assigneeId, completedAt, canceledAt, dueAt, id])
   @@index([candidateId, completedAt, canceledAt, dueAt])
+}
+
+model CandidateInterview {
+  id          String @id
+  candidateId String
+  candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  assigneeId  String
+  assignee    Staff @relation(fields: [assigneeId], references: [id])
+  format      InterviewFormat
+  scheduledAt DateTime
+  minutes     Int
+  logistics   String?
+  status      InterviewStatus @default(SCHEDULED)
+  outcome     String?
+  revision    Int @default(0)
+  createdAt   DateTime @default(now())
+
+  @@index([candidateId, scheduledAt])
+  @@index([assigneeId, status, scheduledAt, id])
 }
 
 model Audit {

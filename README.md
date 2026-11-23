@@ -43,6 +43,12 @@ Use **Follow-ups** on a candidate profile to give the task a name, select the st
 
 After a phone call, email, or text message, open **Contact history** on the candidate profile. Select the channel, direction, and outcome. Add an optional summary and the actual local time of the contact, or leave the time blank to record it as happening now. The newest contacts appear first with the date and the staff member who recorded them. Update the recruitment stage separately when appropriate.
 
+### Schedule an interview
+
+On a candidate profile, open **Interviews → New interview**. Select the interviewer, format, local start time, and duration. Add meeting details and share them with the candidate through your recruiting process. **My interviews** shows your assigned meetings and flags those still awaiting an outcome after the scheduled end.
+
+From the candidate profile, reschedule an open meeting or record it as completed, canceled, or a no-show. A no-show can be recorded after the scheduled end. The activity history tracks these actions, and staff control the candidate's recruitment stage separately.
+
 ### Read the recruiting report
 
 Open **Recruiting report** in the staff navigation and choose the last 7, 30, or 90 UTC calendar days and a driving path. **New candidates** counts distinct profiles created during that period. The stage breakdown and **Currently hired in this group** show where those candidates are now. **Quick applications received** counts submissions during the period, including repeat submissions and submissions from profiles created earlier.

@@ -13,6 +13,7 @@ import { carrier, db, mfaKey, mfaRequired, notice, quickApplyEnabled } from './c
 import { applicationInput, assignmentInput, contactInput, followUpInput, jobInput, noteInput, staffLogin, stageInput, uuid } from './domain';
 import { draftAnswers, extendedAnswers, extendedProfileFields, extendedSubmission, invitationFor, issueInvitation, revokeInvitation, writeExtended } from './extended-application';
 import { redis, withinLimit } from './integrations';
+import { assignedInterviews, scheduleInterview, scheduleInterviewInput, updateInterview, updateInterviewInput } from './interviews';
 import { recruitingReport, reportPeriods } from './recruiting-report';
 import { rateLimitClient, sessionHash, sessionToken, verifyPassword } from './security';
 import { decryptMfaSecret, matchingTotpStep } from './staff-mfa';
@@ -277,6 +278,10 @@ class CrmController {
           orderBy: [{ occurredAt: 'desc' }, { id: 'desc' }],
           include: { author: { select: { email: true } } },
         },
+        interviews: {
+          orderBy: [{ scheduledAt: 'desc' }, { id: 'desc' }],
+          include: { assignee: { select: { email: true } } },
+        },
         followUps: { orderBy: [
           { completedAt: { sort: 'asc', nulls: 'first' } }, { canceledAt: { sort: 'asc', nulls: 'first' } },
           { dueAt: 'asc' }, { id: 'asc' },
@@ -350,6 +355,26 @@ class CrmController {
       skip: (page - 1) * 50, take: 51,
     });
     return { items: items.slice(0, 50), hasNext: items.length > 50 };
+  }
+
+  @Get('interviews') async myInterviews(@Req() req: Request, @Query('page') rawPage?: string) {
+    const actor = await staff(req);
+    const page = parse(z.coerce.number().int().min(1).max(10000).default(1), rawPage);
+    return assignedInterviews(actor.id, page);
+  }
+
+  @Post('candidates/:id/interviews')
+  async interview(@Req() req: Request, @Param('id') rawId: string, @Body() input: unknown) {
+    const actor = await staff(req);
+    return scheduleInterview(parse(uuid, rawId), actor.id, parse(scheduleInterviewInput, input));
+  }
+
+  @Patch('candidates/:id/interviews/:interviewId')
+  async editInterview(
+    @Req() req: Request, @Param('id') rawId: string, @Param('interviewId') rawInterviewId: string, @Body() input: unknown,
+  ) {
+    const actor = await staff(req);
+    return updateInterview(parse(uuid, rawId), parse(uuid, rawInterviewId), actor.id, parse(updateInterviewInput, input));
   }
 
   @Post('candidates/:id/contacts')

@@ -3,11 +3,13 @@ import { randomUUID } from 'node:crypto';
 import { notFound, redirect } from 'next/navigation';
 import { api, staffData, type Track } from '../../../../lib/api';
 import { contactChannels, contactDirections, contactOutcomes } from '../../../../lib/contacts';
+import { interviewFormats, interviewStatuses, type Interview } from '../../../../lib/interviews';
 import { operatingModels, ownerTrailers, routes } from '../../../../lib/invitation';
 import { label, stages, tracks } from '../../../../lib/labels';
 import { ActionForm } from '../../forms';
 import { LocalDateTimeField, LocalDateTime } from '../../follow-up-fields';
 import { ContactForm } from '../../contact-form';
+import { InterviewForm } from '../../interview-form';
 import { InvitationForm } from '../../invitation-form';
 
 type Profile = {
@@ -20,6 +22,7 @@ type Profile = {
     id: string; channel: keyof typeof contactChannels; direction: keyof typeof contactDirections;
     outcome: keyof typeof contactOutcomes; summary: string | null; occurredAt: string; author: { email: string };
   }>;
+  interviews: Interview[];
   followUps: Array<{ id: string; title: string; assigneeId: string; dueAt: string; completedAt: string | null; canceledAt: string | null }>;
   audit: Array<{ id: string; action: string; actorId?: string; createdAt: string; data?: { previous?: string; stage?: string; reason?: string; recruiterId?: string } }>;
 };
@@ -41,6 +44,11 @@ const actions: Record<string, string> = {
   'followUp.created': 'Follow-up scheduled',
   'followUp.completed': 'Follow-up completed',
   'followUp.canceled': 'Follow-up canceled',
+  'interview.scheduled': 'Interview scheduled',
+  'interview.rescheduled': 'Interview rescheduled',
+  'interview.completed': 'Interview completed',
+  'interview.no_show': 'Interview recorded as no-show',
+  'interview.canceled': 'Interview canceled',
 };
 const extendedFields = {
   trailerTypes: 'Trailer experience', loadsIndependently: 'Can load and unload independently',
@@ -135,6 +143,41 @@ export default async function CandidatePage({ params }: { params: Promise<{ id: 
           <p className="font-bold">{contactChannels[item.channel]} · {contactDirections[item.direction]} · {contactOutcomes[item.outcome]}</p>
           <p className="break-words text-sm text-slate-700"><LocalDateTime value={item.occurredAt} /> · {item.author.email}</p>
           {item.summary && <p className="mt-1 whitespace-pre-wrap wrap-anywhere">{item.summary}</p>}
+        </li>)}</ul>
+      </section>
+      <section className="panel lg:col-span-2"><h2 className="mb-3 text-xl font-extrabold">Interviews</h2>
+        <details className="mb-4">
+          <summary className="cursor-pointer font-semibold underline">New interview</summary>
+          <div className="mt-3"><InterviewForm candidateId={id} initialId={randomUUID()} staff={staff} defaultAssignee={candidate.recruiterId} /></div>
+        </details>
+        {candidate.interviews.length === 0 && <p className="text-sm text-slate-700">No interviews recorded yet.</p>}
+        <ul className="grid gap-4">{candidate.interviews.map(item => <li key={item.id} className="border-t border-slate-200 pt-3">
+          <p className="font-bold">{interviewFormats[item.format]} interview · {interviewStatuses[item.status]}</p>
+          <p className="break-words text-sm text-slate-700">
+            <LocalDateTime value={item.scheduledAt} /> · {item.minutes} min · {item.assignee.email}
+          </p>
+          {item.logistics && <p className="mt-2 whitespace-pre-wrap wrap-anywhere">{item.logistics}</p>}
+          {item.outcome && <p className="mt-2 whitespace-pre-wrap wrap-anywhere">{item.outcome}</p>}
+          {item.status === 'SCHEDULED' && <div className="mt-3 grid gap-2">
+            <details><summary className="cursor-pointer font-semibold underline">Reschedule interview</summary>
+              <div className="mt-3"><InterviewForm candidateId={id} initialId={item.id} staff={staff} interview={item} /></div>
+            </details>
+            <details><summary className="cursor-pointer font-semibold underline">Record interview outcome</summary>
+              <ActionForm key={item.revision} action="candidate" submit="Save outcome" className="mt-3 grid gap-3">
+                <input type="hidden" name="id" value={id} />
+                <input type="hidden" name="action" value="interview-outcome" />
+                <input type="hidden" name="interviewId" value={item.id} />
+                <input type="hidden" name="revision" value={item.revision} />
+                <label className="field">Interview result<select name="status" defaultValue="" required>
+                  <option value="" disabled>Select a result</option>
+                  <option value="COMPLETED">Completed</option>
+                  <option value="NO_SHOW">No-show</option>
+                  <option value="CANCELED">Canceled</option>
+                </select></label>
+                <label className="field">Outcome notes (optional)<textarea name="outcome" maxLength={1000} /></label>
+              </ActionForm>
+            </details>
+          </div>}
         </li>)}</ul>
       </section>
       <section className="panel lg:col-span-2"><h2 className="mb-3 text-xl font-extrabold">Follow-ups</h2>

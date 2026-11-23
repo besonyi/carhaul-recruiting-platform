@@ -114,11 +114,19 @@ export async function saveCandidate(_: Result, form: FormData) {
         auth: true, method: 'PATCH', data: { action: action === 'cancel-follow-up' ? 'cancel' : 'complete' },
       });
       break;
+    case 'interview-outcome':
+      response = await api(path + '/interviews/' + encodeURIComponent(get(form, 'interviewId')), {
+        auth: true, method: 'PATCH', data: {
+          action: 'close', revision: Number(get(form, 'revision')), status: get(form, 'status'), outcome: optional(form, 'outcome'),
+        },
+      });
+      break;
     default: return { success: false, message: 'Unknown action.' };
   }
   if (response.ok) {
     revalidatePath(path);
     if (action === 'follow-up' || action.endsWith('-follow-up')) revalidatePath('/crm/follow-ups');
+    else if (action === 'interview-outcome') revalidatePath('/crm/interviews');
     else revalidatePath('/crm');
   }
   return result(response);
@@ -141,6 +149,24 @@ export async function saveContact(previous: Result & { id: string }, form: FormD
   if (!response.ok) return { ...await result(response), id: previous.id };
   revalidatePath(path);
   return { success: true, message: 'Contact recorded.', id: randomUUID() };
+}
+
+export async function saveInterview(previous: Result & { id: string }, form: FormData) {
+  const path = '/crm/candidates/' + encodeURIComponent(get(form, 'candidateId'));
+  const id = optional(form, 'interviewId');
+  const scheduling = {
+    assigneeId: get(form, 'assigneeId'), format: get(form, 'format'), scheduledAt: get(form, 'scheduledAt'),
+    minutes: Number(get(form, 'minutes')), logistics: optional(form, 'logistics'),
+  };
+  const response = await api(path + '/interviews' + (id ? '/' + encodeURIComponent(id) : ''), {
+    auth: true,
+    method: id ? 'PATCH' : 'POST',
+    data: id ? { ...scheduling, action: 'reschedule', revision: Number(get(form, 'revision')) } : { ...scheduling, id: previous.id },
+  });
+  if (!response.ok) return { ...await result(response), id: previous.id };
+  revalidatePath(path);
+  revalidatePath('/crm/interviews');
+  return { success: true, message: id ? 'Interview rescheduled.' : 'Interview scheduled.', id: id ?? randomUUID() };
 }
 
 export async function manageInvitation(_: InvitationResult, form: FormData): Promise<InvitationResult> {

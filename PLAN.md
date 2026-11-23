@@ -86,6 +86,12 @@ The production build and all 11 unit tests passed. An isolated PostgreSQL databa
 - [x] Add an audit event and deduplicate retries without changing the candidate's recruitment stage.
 - [x] Verify all seven migrations, the production build, all 17 tests, authorization, concurrent retries, and mobile entry and retrieval.
 
+## Candidate interviews
+
+- [x] Schedule phone, video, or in-person interviews from the candidate profile and list each staff member's assigned meetings.
+- [x] Reschedule open interviews and record completed, canceled, or no-show outcomes. Audit changes and reject stale edits.
+- [x] Verify all eight migrations, the production build, all 18 tests, duplicate submissions, permissions, and the mobile schedule-to-outcome workflow.
+
 ## Home image
 
 `apps/web/public/car-hauler.webp` was created with built-in ImageGen and appears as an industry illustration.

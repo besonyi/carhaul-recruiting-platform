@@ -1,12 +1,18 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
-export function LocalDateTimeField({ name, label, required }: { name: string; label: string; required?: boolean }) {
-  const [timestamp, setTimestamp] = useState('');
+export function LocalDateTimeField({ name, label, required, initial }: { name: string; label: string; required?: boolean; initial?: string }) {
+  const [timestamp, setTimestamp] = useState(initial ?? '');
+  const input = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (!initial || !input.current) return;
+    const date = new Date(initial);
+    input.current.value = new Date(date.getTime() - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
+  }, [initial]);
   return <>
     <label className="field">{label}
-      <input required={required} type="datetime-local" onChange={event => {
+      <input ref={input} required={required} type="datetime-local" onChange={event => {
         const value = new Date(event.target.value);
         setTimestamp(Number.isNaN(value.getTime()) ? '' : value.toISOString());
       }} />
