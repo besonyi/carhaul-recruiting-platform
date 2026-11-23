@@ -13,6 +13,7 @@ import { carrier, db, mfaKey, mfaRequired, notice, quickApplyEnabled } from './c
 import { applicationInput, assignmentInput, followUpInput, jobInput, noteInput, staffLogin, stageInput, uuid } from './domain';
 import { draftAnswers, extendedAnswers, extendedProfileFields, extendedSubmission, invitationFor, issueInvitation, revokeInvitation, writeExtended } from './extended-application';
 import { redis, withinLimit } from './integrations';
+import { recruitingReport, reportPeriods } from './recruiting-report';
 import { rateLimitClient, sessionHash, sessionToken, verifyPassword } from './security';
 import { decryptMfaSecret, matchingTotpStep } from './staff-mfa';
 
@@ -225,6 +226,14 @@ class CrmController {
 
   @Get('candidates') candidates(@Req() req: Request) {
     return this.listCandidates(req, {});
+  }
+
+  @Get('report') async report(@Req() req: Request, @Query() query: unknown) {
+    await staff(req);
+    const { days, track } = parse(z.object({
+      days: z.enum(reportPeriods).default('30'), track: jobTrack.optional(),
+    }), query);
+    return recruitingReport(days, track);
   }
 
   @Post('candidates/search') @HttpCode(200) search(@Req() req: Request, @Body() input: unknown) {

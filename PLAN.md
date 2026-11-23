@@ -19,7 +19,7 @@ Based on Technical Specification V1.0 in the ChatGPT conversation “Идеи с
 
 - Supply verified carrier identity, fleet photos, recruiting contact details, job terms and approved privacy and consent copy. These inputs are also needed for carrier-specific About, Fleet, Contact and Pay & Benefits content.
 - Configure the production controls in README.md before collecting live applicant data.
-- Add persistent applicant accounts, document uploads, formal application and compliance workflows, SMS, AI and analytics in later phases. The platform serves one carrier.
+- Add persistent applicant accounts, document uploads, formal application and compliance workflows, SMS, AI and advanced recruitment analytics in later phases. The platform serves one carrier.
 
 ## Next increment · Extended applications
 
@@ -73,6 +73,12 @@ The production build and all 11 unit tests passed. An isolated PostgreSQL databa
 - [x] Add the authenticator code to staff sign-in and support requiring it for every active account using the API's environment configuration.
 - [x] Verify the Blueprint schema, all five migrations, the production build, and all 14 tests. Confirm browser sign-in, rejection of invalid codes, atomic rejection of concurrent code reuse, and rejection of legacy password-only sessions when MFA is required.
 - [ ] Enroll the real staff accounts and enable the requirement on Render before accepting live applicant data.
+
+## Recruiting report
+
+- [x] Add a staff-only report with 7-, 30-, and 90-day windows and a driving-path filter.
+- [x] Track new candidates separately from Quick Apply submissions, with daily activity, current recruitment stages, and first-application source categories.
+- [x] Verify all six migrations, the production build, all 16 tests, report access controls, and mobile filtering. Verify that a repeat application counts as a submission while attribution stays with the candidate's first application.
 
 ## Home image
 

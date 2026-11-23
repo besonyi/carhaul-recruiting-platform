@@ -39,6 +39,12 @@ For an existing checkout, regenerate Prisma Client with `npm run postinstall -w 
 
 Use **Follow-ups** on a candidate profile to give the task a name, select the staff member responsible, and enter a due time in your local time zone. **My follow-ups** lists your pending tasks by due time and marks overdue tasks. Completed and canceled tasks stay on the candidate profile and in the activity history.
 
+### Read the recruiting report
+
+Open **Recruiting report** in the staff navigation and choose the last 7, 30, or 90 UTC calendar days and a driving path. **New candidates** counts distinct profiles created during that period. The stage breakdown and **Currently hired in this group** show where those candidates are now. **Quick applications received** counts submissions during the period, including repeat submissions and submissions from profiles created earlier.
+
+Source categories use the first Quick Apply recorded for each candidate. Recognized sources are grouped by channel, unknown values appear as **Other**, and missing sources appear as **Unattributed**. The report returns aggregate counts.
+
 ```text
 npm test
 npm run build

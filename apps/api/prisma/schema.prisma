@@ -100,6 +100,7 @@ model Candidate {
 
   @@unique([phone, track])
   @@index([stage, createdAt])
+  @@index([createdAt])
 }
 
 model Application {
@@ -113,6 +114,7 @@ model Application {
   consent     Consent?
 
   @@index([candidateId, createdAt])
+  @@index([createdAt])
 }
 
 model Consent {

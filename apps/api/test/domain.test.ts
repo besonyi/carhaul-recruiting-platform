@@ -5,6 +5,7 @@ import { applicationInput, followUpInput, jobInput, stageInput } from '../src/do
 import { passwordHash, rateLimitClient, sessionHash, sessionToken, verifyPassword } from '../src/security';
 import { draftAnswers, extendedAnswers, extendedSubmission } from '../src/extended-application';
 import { authenticatorKey, decryptMfaSecret, encryptMfaSecret, matchingTotpStep, readMfaKey } from '../src/staff-mfa';
+import { reportWindow, summarizeReport } from '../src/recruiting-report';
 
 const applicant = {
   name: 'Test Applicant', phone: '(202) 555-0101', email: 'Applicant@example.test',
@@ -133,4 +134,26 @@ test('binds encrypted authenticator secrets to the staff account and encryption 
   assert.throws(() => decryptMfaSecret(ciphertext, Buffer.alloc(32, 2), 'staff-a'));
   assert.deepEqual(readMfaKey(key.toString('base64')), key);
   assert.throws(() => readMfaKey('too short'));
+});
+
+test('report windows include today and use UTC day boundaries', () => {
+  const now = new Date('2026-11-02T01:00:00-04:00');
+  const window = reportWindow('7', now);
+  assert.equal(window.start.toISOString(), '2026-10-27T00:00:00.000Z');
+  assert.equal(window.end.toISOString(), '2026-11-02T05:00:00.000Z');
+  assert.equal(window.trend.length, 7);
+  assert.equal(window.trend.at(-1)?.day, '2026-11-02');
+});
+
+test('report totals use cohort counts, current stages and zero-filled days', () => {
+  const summary = summarizeReport([
+    { stage: 'HIRED', day: '2026-11-01', source: 'Search', total: 2n },
+    { stage: 'NEW_LEAD', day: '2026-11-01', source: 'Referral', total: 1n },
+    { stage: 'QUALIFIED', day: '2026-11-02', source: 'Referral', total: 2n },
+  ], '7', new Date('2026-11-02T16:00:00Z'));
+  assert.equal(summary.candidates, 5);
+  assert.equal(summary.hired, 2);
+  assert.equal(summary.byStage.INTERVIEW, 0);
+  assert.deepEqual(summary.bySource.slice(0, 2), [{ source: 'Referral', count: 3 }, { source: 'Search', count: 2 }]);
+  assert.deepEqual(summary.trend.map(item => item.count), [0, 0, 0, 0, 0, 3, 2]);
 });
