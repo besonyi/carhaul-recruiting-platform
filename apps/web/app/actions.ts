@@ -69,6 +69,8 @@ export async function searchPipeline(previous: PipelineState, form: FormData): P
   const filters = requestedPage ? previous.filters : {
     q: optional(form, 'q'),
     track: optional(form, 'track'),
+    stage: optional(form, 'stage'),
+    mine: form.get('mine') === 'true' || undefined,
   };
   const data = { ...filters, page: Number(requestedPage || 1) };
   const response = await api('/crm/candidates/search', { method: 'POST', auth: true, data });

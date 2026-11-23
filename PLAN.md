@@ -108,14 +108,24 @@ The production build and all 11 unit tests passed. An isolated PostgreSQL databa
 
 - [x] Show current outcomes for offers recorded in the selected period and driving path, including zero counts for statuses with no matching offers.
 - [x] Verify the production build and all 19 API tests.
-- [ ] Verify aggregation and mobile filters with synthetic offers in PostgreSQL. The local integration runner exited during database startup before reaching the report assertions.
+- [x] Apply all ten migrations to isolated PostgreSQL and verify staff authorization, offer status counts, period and driving-path filters, and zero counts. Confirm filter changes and layout in Chrome at 390 px using synthetic offers.
 
 ## CRM pipeline pagination
 
 - [x] Keep the last successful search filters when navigating between result pages. Start a new search on page one.
 - [x] Verify the production build, all 19 API tests, and search, pagination, and failure recovery with a mocked API response.
 - [x] Verify in Chrome at 390 px against a local mock API with 56 synthetic candidates. Confirm Next and Previous retain applied filters, a new search starts on page one, and an API error preserves existing results.
+
+## CRM pipeline stage filter
+
+- [x] Filter candidates and result counts by recruitment stage together with candidate search and driving path. Keep the applied stage during pagination.
+- [x] Verify the production build, all 19 API tests, and all ten migrations in isolated PostgreSQL. Check staff authorization, invalid stages, combined filters, pagination, and clearing the stage in Chrome at 390 px with synthetic candidates.
 - [x] Verify mobile Chrome end to end with 61 synthetic candidates in PostgreSQL. Confirm pagination uses the applied filters while the form has unsaved edits, and confirm a new search starts on page one.
+
+## CRM pipeline assignment filter
+
+- [x] Filter candidates assigned to the signed-in recruiter alongside search, driving path, and stage. Keep the applied assignment filter during pagination.
+- [x] Verify all 19 API tests, the production build, and the filter in Chrome at 390 px using isolated PostgreSQL with two staff accounts and synthetic candidates. Check authorization, per-account counts, pagination, and clearing the filter.
 
 ## Home image
 

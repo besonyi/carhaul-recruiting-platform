@@ -243,13 +243,15 @@ class CrmController {
   }
 
   private async listCandidates(req: Request, input: unknown) {
-    await staff(req);
-    const { q, track, page } = parse(z.object({
+    const actor = await staff(req);
+    const { q, track, stage, mine, page } = parse(z.object({
       q: z.string().trim().max(120).optional(), track: jobTrack.optional(),
+      stage: z.enum(Stage).optional(),
+      mine: z.boolean().optional(),
       page: z.coerce.number().int().min(1).max(10000).default(1),
     }), input);
     const where: Prisma.CandidateWhereInput = {
-      track, OR: q ? [
+      track, stage, recruiterId: mine ? actor.id : undefined, OR: q ? [
         { name: { contains: q, mode: 'insensitive' } },
         { email: { contains: q, mode: 'insensitive' } },
         { phone: { contains: q } },
