@@ -4,14 +4,16 @@ import { api, staffData, type Track } from '../../../../lib/api';
 import { operatingModels, ownerTrailers, routes } from '../../../../lib/invitation';
 import { label, stages, tracks } from '../../../../lib/labels';
 import { ActionForm } from '../../forms';
+import { FollowUpDueField, LocalDateTime } from '../../follow-up-fields';
 import { InvitationForm } from '../../invitation-form';
 
 type Profile = {
   id: string; name: string; email: string; phone: string; state?: string; zip?: string;
   stage: string; stageReason?: string; track: Track; recruiterId?: string;
   applications: Array<{ id: string; createdAt: string; job?: { title: string }; details: Record<string, unknown>; consent?: { version: string; statement: string; acceptedAt: string } }>;
-  extendedApplication: { expiresAt: string; revokedAt?: string; submittedAt?: string; answers?: Record<string, unknown> } | null;
+  extendedApplication: { expiresAt: string; revokedAt?: string; submittedAt?: string; draftSavedAt?: string; answers?: Record<string, unknown> } | null;
   notes: Array<{ id: string; body: string; authorId: string; createdAt: string }>;
+  followUps: Array<{ id: string; title: string; assigneeId: string; dueAt: string; completedAt: string | null; canceledAt: string | null }>;
   audit: Array<{ id: string; action: string; actorId?: string; createdAt: string; data?: { previous?: string; stage?: string; reason?: string; recruiterId?: string } }>;
 };
 const formatDate = (value: string) => new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'UTC' }).format(new Date(value)) + ' UTC';
@@ -27,6 +29,10 @@ const actions: Record<string, string> = {
   'extended.invited': 'Extended application invitation created',
   'extended.revoked': 'Extended application invitation revoked',
   'extended.submitted': 'Extended application submitted',
+  'extended.draftStarted': 'Candidate started an extended application draft',
+  'followUp.created': 'Follow-up scheduled',
+  'followUp.completed': 'Follow-up completed',
+  'followUp.canceled': 'Follow-up canceled',
 };
 const extendedFields = {
   trailerTypes: 'Trailer experience', loadsIndependently: 'Can load and unload independently',
@@ -98,6 +104,7 @@ export default async function CandidatePage({ params }: { params: Promise<{ id: 
             return <div key={key}><dt className="font-bold">{title}</dt><dd>{formatAnswer(value)}</dd></div>;
           })}</dl>
         </> : <>
+          {extended?.draftSavedAt && <p className="mb-2 font-semibold">Draft last saved {formatDate(extended.draftSavedAt)}</p>}
           <p className="mb-3">{invitationActive && extended ? 'Invitation expires ' + formatDate(extended.expiresAt)
             : extended?.revokedAt ? 'The last invitation was revoked.'
             : extended ? 'The last invitation expired.' : 'No invitation issued.'}</p>
@@ -112,6 +119,37 @@ export default async function CandidatePage({ params }: { params: Promise<{ id: 
         {candidate.notes.map(note => <article key={note.id} className="mt-4 border-t border-slate-200 pt-3">
           <p className="text-sm font-semibold">{person(note.authorId)} · {formatDate(note.createdAt)}</p><p className="whitespace-pre-wrap">{note.body}</p>
         </article>)}
+      </section>
+      <section className="panel lg:col-span-2"><h2 className="mb-3 text-xl font-extrabold">Follow-ups</h2>
+        <ActionForm action="candidate" submit="Schedule follow-up" className="grid gap-4 sm:grid-cols-2">
+          <input type="hidden" name="id" value={id} />
+          <input type="hidden" name="action" value="follow-up" />
+          <label className="field">Task<input name="title" maxLength={160} required /></label>
+          <label className="field">Assign follow-up to<select name="assigneeId" defaultValue={candidate.recruiterId || ''} required>
+            <option value="" disabled>Select staff member</option>
+            {staff.map(user => <option key={user.id} value={user.id}>{user.email}</option>)}
+          </select></label>
+          <FollowUpDueField />
+        </ActionForm>
+        <ul className="mt-4 grid gap-3">{candidate.followUps.map(item => <li key={item.id} className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-3">
+          <div>
+            <p className="font-bold">{item.title}</p>
+            <p className="text-sm">{person(item.assigneeId)} · {item.completedAt ? 'Completed ' : item.canceledAt ? 'Canceled ' : 'Due '}
+              <LocalDateTime value={item.completedAt || item.canceledAt || item.dueAt} /></p>
+          </div>
+          {!item.completedAt && !item.canceledAt && <div className="flex flex-wrap items-center gap-2">
+            <ActionForm action="candidate" submit="Mark complete">
+              <input type="hidden" name="id" value={id} />
+              <input type="hidden" name="followUpId" value={item.id} />
+              <input type="hidden" name="action" value="complete-follow-up" />
+            </ActionForm>
+            <ActionForm action="candidate" submit="Cancel task" secondary>
+              <input type="hidden" name="id" value={id} />
+              <input type="hidden" name="followUpId" value={item.id} />
+              <input type="hidden" name="action" value="cancel-follow-up" />
+            </ActionForm>
+          </div>}
+        </li>)}</ul>
       </section>
       <section className="panel lg:col-span-2"><h2 className="mb-3 text-xl font-extrabold">Activity</h2>
         <ul className="grid gap-3">{candidate.audit.map(item => <li key={item.id} className="border-b border-slate-200 pb-2">

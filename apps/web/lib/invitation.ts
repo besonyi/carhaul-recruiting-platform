@@ -3,7 +3,30 @@ import type { Track } from './api';
 export const invitationCookie = 'extended_application';
 export const invitationPath = '/continue';
 export const invitationApiPath = '/applications/extended';
-export type InvitationContext = { track: Track; invitationId: string; expiresAt: string };
+export type InvitationContext = {
+  track: Track;
+  invitationId: string;
+  expiresAt: string;
+  revision: number;
+  draftSavedAt: string | null;
+  draft: {
+    trailerTypes?: string[];
+    loadsIndependently?: boolean;
+    securesIndependently?: boolean;
+    routePreference?: string;
+    trailerType?: string;
+    capacity?: number;
+    truckYear?: number;
+    operatingModel?: string;
+  } | null;
+};
+export type ExtendedFormState = {
+  success: boolean;
+  message: string;
+  revision: number;
+  draftSavedAt: string | null;
+  stale?: boolean;
+};
 export type InvitationResult = { success: boolean; message: string; link?: string };
 
 export const trailers = {

@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { api, cookie } from '../lib/api';
 import type { PipelineData, PipelineState } from './crm/pipeline';
-import { invitationApiPath, invitationCookie, invitationPath, type InvitationContext, type InvitationResult } from '../lib/invitation';
+import { invitationApiPath, invitationCookie, invitationPath, type ExtendedFormState, type InvitationContext, type InvitationResult } from '../lib/invitation';
 
 type Result = { success: boolean; message: string };
 const get = (form: FormData, key: string) => String(form.get(key) ?? '').trim();
@@ -99,9 +99,24 @@ export async function saveCandidate(_: Result, form: FormData) {
     case 'notes':
       response = await api(path + '/notes', { auth: true, method: 'POST', data: { body: get(form, 'body') } });
       break;
+    case 'follow-up':
+      response = await api(path + '/follow-ups', { auth: true, method: 'POST', data: {
+        title: get(form, 'title'), assigneeId: get(form, 'assigneeId'), dueAt: get(form, 'dueAt'),
+      } });
+      break;
+    case 'complete-follow-up':
+    case 'cancel-follow-up':
+      response = await api(path + '/follow-ups/' + encodeURIComponent(get(form, 'followUpId')), {
+        auth: true, method: 'PATCH', data: { action: action === 'cancel-follow-up' ? 'cancel' : 'complete' },
+      });
+      break;
     default: return { success: false, message: 'Unknown action.' };
   }
-  if (response.ok) { revalidatePath(path); revalidatePath('/crm'); }
+  if (response.ok) {
+    revalidatePath(path);
+    if (action === 'follow-up' || action.endsWith('-follow-up')) revalidatePath('/crm/follow-ups');
+    else revalidatePath('/crm');
+  }
   return result(response);
 }
 
@@ -143,31 +158,41 @@ function invitationCookieOptions() {
   };
 }
 
-export async function sendExtendedApplication(_: Result, form: FormData) {
+export async function sendExtendedApplication(previous: ExtendedFormState, form: FormData): Promise<ExtendedFormState> {
   const jar = await cookies();
   const token = jar.get(invitationCookie)?.value;
   const context = await api(invitationApiPath, { token });
-  if (!context.ok) return result(context);
+  if (!context.ok) return { ...previous, ...await result(context) };
   const { track } = await context.json() as InvitationContext;
+  const savingDraft = get(form, 'intent') === 'draft';
   const capacity = optional(form, 'capacity');
   const truckYear = optional(form, 'truckYear');
   const answers = track === 'COMPANY_DRIVER' ? {
     trailerTypes: form.getAll('trailerTypes').map(String),
-    loadsIndependently: get(form, 'loadsIndependently') === 'yes' ? true : get(form, 'loadsIndependently') === 'no' ? false : null,
-    securesIndependently: get(form, 'securesIndependently') === 'yes' ? true : get(form, 'securesIndependently') === 'no' ? false : null,
-    routePreference: get(form, 'routePreference'),
+    loadsIndependently: readYesNo(form, 'loadsIndependently'),
+    securesIndependently: readYesNo(form, 'securesIndependently'),
+    routePreference: optional(form, 'routePreference'),
   } : {
-    trailerType: get(form, 'trailerType'),
+    trailerType: optional(form, 'trailerType'),
     capacity: capacity ? Number(capacity) : undefined,
     truckYear: truckYear ? Number(truckYear) : undefined,
-    operatingModel: get(form, 'operatingModel'),
+    operatingModel: optional(form, 'operatingModel'),
   };
   const response = await api(invitationApiPath, {
-    method: 'POST', token, data: { invitationId: get(form, 'invitationId'), answers },
+    method: savingDraft ? 'PATCH' : 'POST',
+    token,
+    data: { invitationId: get(form, 'invitationId'), revision: Number(get(form, 'revision')), answers },
   });
-  if (response.ok) {
-    jar.set(invitationCookie, '', { ...invitationCookieOptions(), maxAge: 0 });
-    redirect(invitationPath + '/received');
+  if (!response.ok) return { ...previous, ...await result(response), stale: response.status === 409 };
+  if (savingDraft) {
+    const saved = await response.json() as Pick<ExtendedFormState, 'revision' | 'draftSavedAt'>;
+    return { ...saved, success: true, message: 'Draft saved.' };
   }
-  return result(response);
+  jar.set(invitationCookie, '', { ...invitationCookieOptions(), maxAge: 0 });
+  redirect(invitationPath + '/received');
+}
+
+function readYesNo(form: FormData, key: string) {
+  const value = get(form, key);
+  return value === 'yes' ? true : value === 'no' ? false : undefined;
 }

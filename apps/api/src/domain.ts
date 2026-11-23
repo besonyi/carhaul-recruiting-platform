@@ -38,3 +38,8 @@ export const stageInput = z.strictObject({
 export const staffLogin = z.strictObject({ email: z.email().max(254), password: z.string().min(1).max(256) });
 export const noteInput = z.strictObject({ body: text(2000) });
 export const assignmentInput = z.strictObject({ recruiterId: uuid.nullable() });
+export const followUpInput = z.strictObject({
+  title: text(160),
+  assigneeId: uuid,
+  dueAt: z.iso.datetime({ offset: true }).transform(value => new Date(value)),
+});

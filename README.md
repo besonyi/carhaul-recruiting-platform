@@ -31,9 +31,13 @@ Populate `CARRIER_NAME`, `CONTACT_NOTICE_VERSION` and `CONTACT_NOTICE_TEXT` in t
 
 On a candidate's CRM profile, choose **Create invitation** under **Extended application**, copy the private link and share it with the candidate through your recruitment process. Set `WEB_ORIGIN` in the web environment to the actual web origin so the generated link resolves correctly. Production invitation links require HTTPS.
 
-Each link expires after 72 hours and accepts one completed submission. Staff can replace or revoke an unused link. The form stores structured recruiting details. After submission, the candidate sees a confirmation and staff can review answers in the same profile. The activity timeline records invitation creation, revocation and submission.
+Each link expires after 72 hours and accepts one completed submission. Staff can replace or revoke an unused link. Candidates can save a draft and continue from a current link, including a replacement link. The CRM shows the last save time. After submission, the candidate sees a confirmation and staff can review answers in the same profile. The activity timeline records invitation creation, revocation, the first draft save and submission.
 
 For an existing checkout, regenerate Prisma Client with `npm run postinstall -w api` and apply the new migration with `npm run db:deploy` before restarting the app.
+
+### Schedule a follow-up
+
+Use **Follow-ups** on a candidate profile to give the task a name, select the staff member responsible, and enter a due time in your local time zone. **My follow-ups** lists your pending tasks by due time and marks overdue tasks. Completed and canceled tasks stay on the candidate profile and in the activity history.
 
 ```text
 npm test
@@ -53,4 +57,4 @@ Provide verified carrier and recruiting information along with approved privacy 
 
 The API rate limit keys use its direct peer address. Browser requests sent through one Next.js process share that process's IP allowance. Resolve client identity at the trusted ingress and align the application rate limits before opening intake to the public.
 
-Quick Apply and the extended questionnaire exclude SSNs, CDL numbers and document uploads. Persistent applicant accounts, saved drafts, formal application and compliance workflows, onboarding, SMS, AI and analytics are tracked as follow-on work.
+Quick Apply and the extended questionnaire exclude SSNs, CDL numbers and document uploads. Persistent applicant accounts, formal application and compliance workflows, onboarding, SMS, AI and analytics are tracked as follow-on work.

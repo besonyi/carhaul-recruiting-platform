@@ -19,7 +19,7 @@ Based on Technical Specification V1.0 in the ChatGPT conversation “Идеи с
 
 - Supply verified carrier identity, fleet photos, recruiting contact details, job terms and approved privacy and consent copy. These inputs are also needed for carrier-specific About, Fleet, Contact and Pay & Benefits content.
 - Configure the production controls in README.md before collecting live applicant data.
-- Add persistent applicant accounts and saved drafts, document uploads, compliance, SMS, AI and analytics in later phases. The platform serves one carrier.
+- Add persistent applicant accounts, document uploads, formal application and compliance workflows, SMS, AI and analytics in later phases. The platform serves one carrier.
 
 ## Next increment · Extended applications
 
@@ -32,6 +32,22 @@ Based on Technical Specification V1.0 in the ChatGPT conversation “Идеи с
 - [x] Verify in mobile Chrome that staff can create an invitation, the Owner Operator form supports a candidate without a trailer, the candidate sees a confirmation, and the submitted answers appear in the CRM.
 
 The applicant opens an invitation shared by recruiting, completes the questionnaire and receives a confirmation. Submission leaves the recruitment stage under staff control.
+
+## Applicant drafts
+
+- [x] Save partial extended answers and restore them when a candidate reopens the invitation. Replacement links preserve saved work.
+- [x] Detect a stale form before saving or submitting. The candidate can reload the newest saved draft from the form.
+- [x] Show when a draft was last saved in the CRM. Staff can review the answers after submission.
+- [x] Verify draft recovery across reloads and replacement links in PostgreSQL and mobile Chrome, including a stale-tab conflict.
+
+## CRM follow-ups
+
+- [x] Create a task from a candidate profile with an assignee and a due time.
+- [x] Show pending tasks in the assignee's queue ordered by due time, and mark overdue tasks.
+- [x] Complete or cancel a task and record the action in the candidate's history.
+- [x] Verify assignee isolation, due-time display, completion and cancellation in API and mobile browser checks.
+
+The production build and all 11 unit tests passed. An isolated PostgreSQL database applied all four migrations, and Prisma found no schema differences afterward.
 
 ## Home image
 

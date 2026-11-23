@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { applicationInput, jobInput, stageInput } from '../src/domain';
+import { applicationInput, followUpInput, jobInput, stageInput } from '../src/domain';
 import { passwordHash, sessionHash, sessionToken, verifyPassword } from '../src/security';
-import { extendedAnswers } from '../src/extended-application';
+import { draftAnswers, extendedAnswers, extendedSubmission } from '../src/extended-application';
 
 const applicant = {
   name: 'Test Applicant', phone: '(202) 555-0101', email: 'Applicant@example.test',
@@ -68,4 +68,29 @@ test('extended owner operator answers validate equipment and operating model', (
   assert.equal(extendedAnswers.OWNER_OPERATOR.safeParse({ trailerType: 'NONE', operatingModel: 'OPEN_TO_EITHER' }).success, true);
   assert.equal(extendedAnswers.OWNER_OPERATOR.safeParse({ ...answers, trailerType: 'NONE' }).success, false);
   assert.equal(extendedAnswers.COMPANY_DRIVER.safeParse(answers).success, false);
+});
+
+test('drafts preserve partial answers without allowing uncontrolled fields or final submission', () => {
+  const draft = { loadsIndependently: false, trailerTypes: ['STINGER_STEER'] };
+  assert.deepEqual(draftAnswers.COMPANY_DRIVER.parse(draft), draft);
+  assert.equal(extendedAnswers.COMPANY_DRIVER.safeParse(draft).success, false);
+  assert.equal(draftAnswers.COMPANY_DRIVER.safeParse({ ...draft, document: 'fixture' }).success, false);
+  assert.equal(draftAnswers.OWNER_OPERATOR.safeParse({ trailerType: 'WEDGE' }).success, true);
+  assert.equal(draftAnswers.OWNER_OPERATOR.safeParse({ trailerType: 'NONE', capacity: 5 }).success, false);
+});
+
+test('extended form writes validate draft revisions and support the initial revision', () => {
+  const body = { invitationId: crypto.randomUUID(), answers: {} };
+  assert.equal(extendedSubmission.parse(body).revision, 0);
+  assert.equal(extendedSubmission.parse({ ...body, revision: 2 }).revision, 2);
+  assert.equal(extendedSubmission.safeParse({ ...body, revision: -1 }).success, false);
+});
+
+test('follow-up times require an offset and normalize to an absolute timestamp', () => {
+  const input = { title: '  Schedule a recruiting call  ', assigneeId: crypto.randomUUID(), dueAt: '2026-11-24T10:00:00-06:00' };
+  const item = followUpInput.parse(input);
+  assert.equal(item.title, 'Schedule a recruiting call');
+  assert.equal(item.dueAt.toISOString(), '2026-11-24T16:00:00.000Z');
+  assert.equal(followUpInput.safeParse({ ...input, dueAt: '2026-11-24T10:00:00' }).success, false);
+  assert.equal(followUpInput.safeParse({ ...input, assigneeId: 'someone' }).success, false);
 });

@@ -45,6 +45,7 @@ model Staff {
   active       Boolean @default(true)
   sessions     Session[]
   candidates   Candidate[]
+  followUps    FollowUp[]
 }
 
 model Session {
@@ -92,6 +93,7 @@ model Candidate {
   extendedApplication ExtendedApplication?
   notes        Note[]
   audit        Audit[]
+  followUps    FollowUp[]
 
   @@unique([phone, track])
   @@index([stage, createdAt])
@@ -128,6 +130,9 @@ model ExtendedApplication {
   revokedAt   DateTime?
   submittedAt DateTime?
   answers     Json?
+  draft       Json?
+  draftSavedAt DateTime?
+  revision    Int @default(0)
 }
 
 model Note {
@@ -139,6 +144,22 @@ model Note {
   createdAt   DateTime @default(now())
 
   @@index([candidateId, createdAt])
+}
+
+model FollowUp {
+  id           String @id @default(uuid())
+  candidateId  String
+  candidate    Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  assigneeId   String
+  assignee     Staff @relation(fields: [assigneeId], references: [id])
+  title        String
+  dueAt        DateTime
+  completedAt  DateTime?
+  canceledAt   DateTime?
+  createdAt    DateTime @default(now())
+
+  @@index([assigneeId, completedAt, canceledAt, dueAt, id])
+  @@index([candidateId, completedAt, canceledAt, dueAt])
 }
 
 model Audit {

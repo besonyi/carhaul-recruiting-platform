@@ -10,8 +10,8 @@ import type { Request, Response, NextFunction } from 'express';
 import helmet from 'helmet';
 import { z } from 'zod';
 import { carrier, db, notice, quickApplyEnabled } from './config';
-import { applicationInput, assignmentInput, jobInput, noteInput, staffLogin, stageInput, uuid } from './domain';
-import { extendedAnswers, extendedProfileFields, invitationFor, issueInvitation, revokeInvitation, submitExtended } from './extended-application';
+import { applicationInput, assignmentInput, followUpInput, jobInput, noteInput, staffLogin, stageInput, uuid } from './domain';
+import { draftAnswers, extendedAnswers, extendedProfileFields, extendedSubmission, invitationFor, issueInvitation, revokeInvitation, writeExtended } from './extended-application';
 import { redis, withinLimit } from './integrations';
 import { sessionHash, sessionToken, verifyPassword } from './security';
 
@@ -100,16 +100,25 @@ class PublicController {
   }
 
   @Get('applications/extended') async extendedContext(@Req() req: Request) {
-    const { candidate, invitationId, expiresAt } = await invitationFor(tokenFrom(req));
-    return { track: candidate.track, invitationId, expiresAt };
+    const { candidate, invitationId, expiresAt, revision, draft, draftSavedAt } = await invitationFor(tokenFrom(req));
+    return { track: candidate.track, invitationId, expiresAt, revision, draft, draftSavedAt };
   }
 
-  @Post('applications/extended') async extendedSubmit(@Req() req: Request, @Body() input: unknown) {
+  @Patch('applications/extended') saveExtendedDraft(@Req() req: Request, @Body() input: unknown) {
+    return this.updateExtended(req, input, 'draft');
+  }
+
+  @Post('applications/extended') submitExtendedApplication(@Req() req: Request, @Body() input: unknown) {
+    return this.updateExtended(req, input, 'submit');
+  }
+
+  private async updateExtended(req: Request, input: unknown, intent: 'draft' | 'submit') {
     const invitation = await invitationFor(tokenFrom(req));
-    const envelope = parse(z.strictObject({ invitationId: uuid, answers: z.unknown() }), input);
+    const envelope = parse(extendedSubmission, input);
     if (invitation.invitationId !== envelope.invitationId) throw new ConflictException('The active invitation changed. Reopen your link before submitting.');
-    const answers = parse<z.infer<(typeof extendedAnswers)[Track]>>(extendedAnswers[invitation.candidate.track], envelope.answers);
-    return submitExtended(invitation, answers);
+    const schema = (intent === 'draft' ? draftAnswers : extendedAnswers)[invitation.candidate.track];
+    const answers = parse<Prisma.InputJsonObject>(schema, envelope.answers);
+    return writeExtended(invitation, envelope.revision, answers, intent);
   }
 }
 
@@ -219,6 +228,10 @@ class CrmController {
         applications: { orderBy: { createdAt: 'desc' }, include: { consent: true, job: { select: { title: true } } } },
         extendedApplication: { select: extendedProfileFields },
         notes: { orderBy: { createdAt: 'desc' } },
+        followUps: { orderBy: [
+          { completedAt: { sort: 'asc', nulls: 'first' } }, { canceledAt: { sort: 'asc', nulls: 'first' } },
+          { dueAt: 'asc' }, { id: 'asc' },
+        ] },
         audit: { orderBy: { createdAt: 'desc' } },
       },
     });
@@ -273,6 +286,65 @@ class CrmController {
       await tx.audit.create({ data: { actorId: actor.id, candidateId: id, subjectId: note.id, action: 'candidate.noteAdded' } });
     });
     return { added: true };
+  }
+
+  @Get('follow-ups') async myFollowUps(@Req() req: Request, @Query('page') rawPage?: string) {
+    const actor = await staff(req);
+    const page = parse(z.coerce.number().int().min(1).max(10000).default(1), rawPage);
+    const items = await db.followUp.findMany({
+      where: { assigneeId: actor.id, completedAt: null, canceledAt: null },
+      select: {
+        id: true, title: true, dueAt: true,
+        candidate: { select: { id: true, name: true } },
+      },
+      orderBy: [{ dueAt: 'asc' }, { id: 'asc' }],
+      skip: (page - 1) * 50, take: 51,
+    });
+    return { items: items.slice(0, 50), hasNext: items.length > 50 };
+  }
+
+  @Post('candidates/:id/follow-ups') async addFollowUp(@Req() req: Request, @Param('id') rawId: string, @Body() input: unknown) {
+    const actor = await staff(req);
+    const candidateId = parse(uuid, rawId);
+    const data = parse(followUpInput, input);
+    return db.$transaction(async tx => {
+      if (!(await tx.candidate.findUnique({ where: { id: candidateId }, select: { id: true } }))) throw new NotFoundException();
+      if (!(await tx.staff.findFirst({ where: { id: data.assigneeId, active: true }, select: { id: true } }))) {
+        throw new BadRequestException('Select an active staff member.');
+      }
+      const followUp = await tx.followUp.create({ data: { ...data, candidateId }, select: { id: true } });
+      await tx.audit.create({
+        data: { actorId: actor.id, candidateId, subjectId: followUp.id, action: 'followUp.created', data: { assigneeId: data.assigneeId } },
+      });
+      return followUp;
+    });
+  }
+
+  @Patch('candidates/:id/follow-ups/:followUpId') async closeFollowUp(
+    @Req() req: Request, @Param('id') rawId: string, @Param('followUpId') rawFollowUpId: string,
+    @Body() input: unknown,
+  ) {
+    const actor = await staff(req);
+    const candidateId = parse(uuid, rawId);
+    const id = parse(uuid, rawFollowUpId);
+    const { action } = parse(z.strictObject({ action: z.enum(['complete', 'cancel']).default('complete') }), input ?? {});
+    const dateField = action === 'complete' ? 'completedAt' : 'canceledAt';
+    await db.$transaction(async tx => {
+      const where = { id, candidateId };
+      const updated = await tx.followUp.updateMany({
+        where: { ...where, completedAt: null, canceledAt: null }, data: { [dateField]: new Date() },
+      });
+      if (!updated.count) {
+        const item = await tx.followUp.findFirst({ where, select: { completedAt: true, canceledAt: true } });
+        if (!item) throw new NotFoundException();
+        if (!item[dateField]) throw new ConflictException('This follow-up has already been closed.');
+        return;
+      }
+      await tx.audit.create({
+        data: { actorId: actor.id, candidateId, subjectId: id, action: action === 'complete' ? 'followUp.completed' : 'followUp.canceled' },
+      });
+    });
+    return { status: dateField === 'completedAt' ? 'completed' : 'canceled' };
   }
 }
 
