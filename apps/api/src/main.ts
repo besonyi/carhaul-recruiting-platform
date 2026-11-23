@@ -47,6 +47,14 @@ const publicJob = {
 
 @Controller()
 class PublicController {
+  @Get('health') @HttpCode(204) async health() {
+    try {
+      await Promise.all([db.$queryRaw`SELECT 1`, redis.ping()]);
+    } catch {
+      throw new ServiceUnavailableException('Service temporarily unavailable.');
+    }
+  }
+
   @Get('site') site() {
     return { carrier, notice: quickApplyEnabled ? notice : null };
   }
@@ -361,7 +369,7 @@ async function bootstrap() {
   });
   redis.on('error', () => {});
   app.setGlobalPrefix('api');
-  await app.listen(Number(process.env.API_PORT || 4000), process.env.API_HOST || '127.0.0.1');
+  await app.listen(Number(process.env.API_PORT || process.env.PORT || 4000), process.env.API_HOST || '127.0.0.1');
 }
 
 bootstrap().catch(() => { console.error('Could not start the recruiting API.'); process.exit(1); });

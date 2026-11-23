@@ -45,6 +45,24 @@ npm run build
 docker compose down
 ```
 
+## Deploy on Render
+
+Open the [Render Blueprint for this repository](https://dashboard.render.com/blueprint/new?repo=https%3A%2F%2Fgithub.com%2Fbesonyi%2Fcarhaul-recruiting-platform), authorize GitHub access if prompted, and select `main`. Review and apply the Blueprint in the intended Render workspace. It provisions four paid resources in Virginia: a public Next.js web service, a private NestJS API, PostgreSQL 17, and Render Key Value. Review the estimate shown by Render before applying.
+
+The Blueprint installs dependencies from the workspace root and applies Prisma migrations before each API deploy. The web service reads the API's internal address from Render. The web service's `/healthz` endpoint checks the API, PostgreSQL and Key Value. Render supplies the initial HTTPS public origin through `RENDER_EXTERNAL_URL`. If you add a custom domain, set `WEB_ORIGIN` on the web service to its HTTPS origin so candidate invitations point there.
+
+The public site can start with its generic title and an empty jobs list. Set `CARRIER_NAME`, `CONTACT_NOTICE_VERSION` and `CONTACT_NOTICE_TEXT` in the API service environment when verified carrier information and approved consent copy are available. These values enable Quick Apply. Review the production controls below before taking real applications.
+
+After the API's first successful deploy, open its Render Shell and run the following from the repository root to provision the first administrator. Replace the example email with the administrator's work address.
+
+```bash
+read -rsp "Staff password: " STAFF_INITIAL_PASSWORD
+echo
+export STAFF_INITIAL_PASSWORD
+npm run staff:create -- admin@example.test ADMIN
+unset STAFF_INITIAL_PASSWORD
+```
+
 ## Data flow
 
 Next.js performs mutations through server actions and calls the private Nest API. Staff use expiring, revocable sessions with hashed tokens and an HTTP-only cookie. Admins manage jobs. Admins and recruiters review applicants and update the pipeline. PostgreSQL stores normalized candidate profiles, each submission, the consent statement and timestamp, and transactional audit events. Candidates match by normalized phone and driving track. Repeat submissions keep their own contact snapshot and preserve the existing pipeline stage.

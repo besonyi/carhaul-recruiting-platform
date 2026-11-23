@@ -9,13 +9,17 @@ export type Job = {
   schedule: string; equipment: string; compensation?: string | null; status?: string;
 };
 export type Site = { carrier: string; notice: { version: string; statement: string; agreement: string } | null };
-export async function api(path: string, opts: { method?: string; data?: unknown; auth?: boolean; token?: string } = {}) {
+export async function api(path: string, opts: {
+  method?: string; data?: unknown; auth?: boolean; token?: string; timeoutMs?: number;
+} = {}) {
   const token = opts.auth ? (await cookies()).get(cookie)?.value : opts.token;
+  const hostport = process.env.API_HOSTPORT;
+  const baseUrl = process.env.API_URL || (hostport ? 'http://' + hostport + '/api' : 'http://127.0.0.1:4000/api');
   try {
-    return await fetch((process.env.API_URL || 'http://127.0.0.1:4000/api') + path, {
+    return await fetch(baseUrl + path, {
       method: opts.method || 'GET',
       cache: 'no-store',
-      signal: AbortSignal.timeout(8000),
+      signal: AbortSignal.timeout(opts.timeoutMs ?? 8000),
       headers: {
         ...(token && { Authorization: 'Bearer ' + token }),
         ...(opts.data !== undefined && { 'Content-Type': 'application/json' }),

@@ -49,6 +49,13 @@ The applicant opens an invitation shared by recruiting, completes the questionna
 
 The production build and all 11 unit tests passed. An isolated PostgreSQL database applied all four migrations, and Prisma found no schema differences afterward.
 
+## Render deployment
+
+- [x] Add the root Blueprint for a public web service, private API, PostgreSQL, and Render Key Value.
+- [x] Connect services over Render's private network, run migrations before API startup, and serve a readiness check.
+- [x] Validate the Blueprint against Render's published schema. Verify production-mode install and build, all 11 tests, and browser workflows using Render-shaped environment variables with local PostgreSQL and Redis.
+- [ ] Apply the Blueprint in the intended Render workspace and verify a live deployment. Workspace-level CLI validation requires authenticated Render access.
+
 ## Home image
 
 `apps/web/public/car-hauler.webp` was created with built-in ImageGen and appears as an industry illustration.

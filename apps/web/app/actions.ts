@@ -4,6 +4,7 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { api, cookie } from '../lib/api';
+import { webOrigin } from '../lib/web-origin';
 import type { PipelineData, PipelineState } from './crm/pipeline';
 import { invitationApiPath, invitationCookie, invitationPath, type ExtendedFormState, type InvitationContext, type InvitationResult } from '../lib/invitation';
 
@@ -47,7 +48,7 @@ export async function login(_: Result, form: FormData) {
   if (!response.ok) return result(response);
   const { token, expiresAt } = await response.json();
   await (await cookies()).set(cookie, token, {
-    httpOnly: true, sameSite: 'lax', secure: (process.env.WEB_ORIGIN || '').startsWith('https://'),
+    httpOnly: true, sameSite: 'lax', secure: webOrigin().startsWith('https://'),
     expires: new Date(expiresAt), path: '/',
   });
   redirect('/crm');
@@ -124,8 +125,7 @@ export async function manageInvitation(_: InvitationResult, form: FormData): Pro
   const id = encodeURIComponent(get(form, 'id'));
   const issue = get(form, 'intent') === 'issue';
   const method = issue ? 'POST' : 'PATCH';
-  const configuredOrigin = process.env.WEB_ORIGIN || 'http://localhost:3000';
-  const url = URL.parse(invitationPath, configuredOrigin);
+  const url = URL.parse(invitationPath, webOrigin());
   const loopback = url && ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname);
   if (issue && (!url || url.username || url.password || (url.protocol !== 'https:' && !(loopback && url.protocol === 'http:')))) {
     return { success: false, message: 'Configure an HTTPS web origin to issue invitations.' };
@@ -154,7 +154,7 @@ export async function openInvitation(token: string): Promise<Result> {
 function invitationCookieOptions() {
   return {
     path: invitationPath, httpOnly: true, sameSite: 'lax' as const,
-    secure: (process.env.WEB_ORIGIN || '').startsWith('https://'),
+    secure: webOrigin().startsWith('https://'),
   };
 }
 

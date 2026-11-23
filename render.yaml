@@ -1,0 +1,55 @@
+services:
+  - name: carhaul-recruiting-web
+    type: web
+    runtime: node
+    branch: main
+    region: virginia
+    plan: 0.5c-512mb
+    buildCommand: npm ci --include=dev && npm run build -w web
+    startCommand: npm run start -w web -- --hostname 0.0.0.0
+    healthCheckPath: /healthz
+    envVars:
+      - key: API_HOSTPORT
+        fromService:
+          name: carhaul-recruiting-api
+          type: pserv
+          property: hostport
+
+  - name: carhaul-recruiting-api
+    type: pserv
+    runtime: node
+    branch: main
+    region: virginia
+    plan: 0.5c-512mb
+    buildCommand: npm ci --include=dev && npm run build -w api
+    preDeployCommand: npm run db:deploy
+    startCommand: npm run start -w api
+    envVars:
+      - key: API_HOST
+        value: 0.0.0.0
+      - key: PORT
+        value: "10000"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: carhaul-recruiting-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          name: carhaul-recruiting-cache
+          type: keyvalue
+          property: connectionString
+
+  - name: carhaul-recruiting-cache
+    type: keyvalue
+    region: virginia
+    plan: 256mb
+    ipAllowList: []
+    maxmemoryPolicy: noeviction
+
+databases:
+  - name: carhaul-recruiting-db
+    databaseName: carhaul
+    region: virginia
+    plan: 0.1c-256mb
+    postgresMajorVersion: "17"
+    ipAllowList: []
