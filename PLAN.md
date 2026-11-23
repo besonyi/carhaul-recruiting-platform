@@ -126,6 +126,8 @@ The production build and all 11 unit tests passed. An isolated PostgreSQL databa
 
 - [x] Filter candidates assigned to the signed-in recruiter alongside search, driving path, and stage. Keep the applied assignment filter during pagination.
 - [x] Verify all 19 API tests, the production build, and the filter in Chrome at 390 px using isolated PostgreSQL with two staff accounts and synthetic candidates. Check authorization, per-account counts, pagination, and clearing the filter.
+- [x] Add an unassigned-candidates filter. Verify that it shows only candidates without a recruiter, combines with the existing filters, and preserves compatibility with the prior API filter. All 19 tests, the production build, and the PostgreSQL and mobile Chrome checks passed.
+- [x] Let staff assign an unassigned candidate to themselves from the profile and record the assignment in activity. Verify access controls, concurrent claims, retry without duplicate audit entries, and the unchanged recruitment stage in isolated PostgreSQL. Confirm the updated assignment in Chrome at 390 px. All 19 tests and the production build passed.
 
 ## Home image
 

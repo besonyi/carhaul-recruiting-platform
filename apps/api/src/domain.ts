@@ -58,7 +58,10 @@ export const contactInput = z.strictObject({
     ctx.addIssue({ code: 'custom', path: ['outcome'], message: 'Select an outcome that matches the channel and direction.' });
   }
 });
-export const assignmentInput = z.strictObject({ recruiterId: uuid.nullable() });
+export const assignmentInput = z.union([
+  z.strictObject({ recruiterId: uuid.nullable() }),
+  z.strictObject({ claim: z.literal(true) }),
+]);
 export const followUpInput = z.strictObject({
   title: text(160),
   assigneeId: uuid,

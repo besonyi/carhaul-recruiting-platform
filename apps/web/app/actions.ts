@@ -70,7 +70,7 @@ export async function searchPipeline(previous: PipelineState, form: FormData): P
     q: optional(form, 'q'),
     track: optional(form, 'track'),
     stage: optional(form, 'stage'),
-    mine: form.get('mine') === 'true' || undefined,
+    assignment: optional(form, 'assignment'),
   };
   const data = { ...filters, page: Number(requestedPage || 1) };
   const response = await api('/crm/candidates/search', { method: 'POST', auth: true, data });
@@ -102,6 +102,9 @@ export async function saveCandidate(_: Result, form: FormData) {
       break;
     case 'assignment':
       response = await api(path + '/assignment', { auth: true, method: 'PATCH', data: { recruiterId: optional(form, 'recruiterId') ?? null } });
+      break;
+    case 'claim':
+      response = await api(path + '/assignment', { auth: true, method: 'PATCH', data: { claim: true } });
       break;
     case 'notes':
       response = await api(path + '/notes', { auth: true, method: 'POST', data: { body: get(form, 'body') } });

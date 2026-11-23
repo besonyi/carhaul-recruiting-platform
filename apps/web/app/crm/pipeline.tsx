@@ -11,7 +11,7 @@ export type PipelineData = { candidates: Candidate[]; counts: Record<string, num
 export type PipelineState = {
   data: PipelineData;
   page: number;
-  filters: { q?: string; track?: string; stage?: string; mine?: boolean };
+  filters: { q?: string; track?: string; stage?: string; assignment?: string };
   message?: string;
 };
 
@@ -34,9 +34,10 @@ export function Pipeline({ initial }: { initial: PipelineData }) {
         <option value="">All stages</option>
         {stages.map(stage => <option key={stage} value={stage}>{label(stage)}</option>)}
       </select></label>
-      <label className="field">Assignment<select name="mine" value={assignment} onChange={event => setAssignment(event.target.value)}>
+      <label className="field">Assignment<select name="assignment" value={assignment} onChange={event => setAssignment(event.target.value)}>
         <option value="">All candidates</option>
-        <option value="true">My candidates</option>
+        <option value="mine">My candidates</option>
+        <option value="unassigned">Unassigned candidates</option>
       </select></label>
       <button className="button" disabled={pending}>{pending ? 'Searching…' : 'Search'}</button>
       {state.message && <p className="text-red-800 sm:col-span-full" role="alert">{state.message}</p>}

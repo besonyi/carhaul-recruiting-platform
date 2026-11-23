@@ -98,9 +98,13 @@ export default async function CandidatePage({ params }: { params: Promise<{ id: 
         <h3 className="my-3 font-bold">Recruiter assignment</h3>
         <ActionForm action="candidate" submit="Save assignment">
           <input type="hidden" name="id" value={id} /><input type="hidden" name="action" value="assignment" />
-          <label className="field">Assigned to<select name="recruiterId" defaultValue={candidate.recruiterId || ''}><option value="">Unassigned</option>
+          <label className="field">Assigned to<select key={candidate.recruiterId || 'unassigned'} name="recruiterId" defaultValue={candidate.recruiterId || ''}><option value="">Unassigned</option>
             {staff.map(user => <option key={user.id} value={user.id}>{user.email}</option>)}</select></label>
         </ActionForm>
+        {!candidate.recruiterId && <ActionForm action="candidate" submit="Assign to me" className="mt-2" secondary>
+          <input type="hidden" name="id" value={id} />
+          <input type="hidden" name="action" value="claim" />
+        </ActionForm>}
       </section>
       <section className="panel"><h2 className="mb-3 text-xl font-extrabold">Pipeline stage</h2>
         {candidate.stageReason && <p className="mb-3"><strong>Current reason</strong> {candidate.stageReason}</p>}

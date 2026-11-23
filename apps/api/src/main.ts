@@ -244,14 +244,16 @@ class CrmController {
 
   private async listCandidates(req: Request, input: unknown) {
     const actor = await staff(req);
-    const { q, track, stage, mine, page } = parse(z.object({
+    const { q, track, stage, mine, assignment, page } = parse(z.object({
       q: z.string().trim().max(120).optional(), track: jobTrack.optional(),
       stage: z.enum(Stage).optional(),
       mine: z.boolean().optional(),
+      assignment: z.enum(['mine', 'unassigned']).optional(),
       page: z.coerce.number().int().min(1).max(10000).default(1),
     }), input);
+    const recruiterId = assignment === 'unassigned' ? null : assignment === 'mine' || mine ? actor.id : undefined;
     const where: Prisma.CandidateWhereInput = {
-      track, stage, recruiterId: mine ? actor.id : undefined, OR: q ? [
+      track, stage, recruiterId, OR: q ? [
         { name: { contains: q, mode: 'insensitive' } },
         { email: { contains: q, mode: 'insensitive' } },
         { phone: { contains: q } },
@@ -325,13 +327,23 @@ class CrmController {
   @Patch('candidates/:id/assignment') async assign(@Req() req: Request, @Param('id') rawId: string, @Body() input: unknown) {
     const actor = await staff(req);
     const id = parse(uuid, rawId);
-    const { recruiterId } = parse(assignmentInput, input);
+    const assignment = parse(assignmentInput, input);
+    const claim = 'claim' in assignment;
+    const recruiterId = claim ? actor.id : assignment.recruiterId;
     await db.$transaction(async tx => {
-      if (recruiterId && !(await tx.staff.findFirst({ where: { id: recruiterId, active: true } }))) {
+      if (!claim && recruiterId && !(await tx.staff.findFirst({ where: { id: recruiterId, active: true } }))) {
         throw new BadRequestException('Select an active staff member.');
       }
-      const updated = await tx.candidate.updateMany({ where: { id }, data: { recruiterId } });
-      if (!updated.count) throw new NotFoundException();
+      const updated = await tx.candidate.updateMany({
+        where: { id, ...(claim ? { recruiterId: null } : {}) }, data: { recruiterId },
+      });
+      if (!updated.count) {
+        if (!claim) throw new NotFoundException();
+        const candidate = await tx.candidate.findUnique({ where: { id }, select: { recruiterId: true } });
+        if (!candidate) throw new NotFoundException();
+        if (candidate.recruiterId === actor.id) return;
+        throw new ConflictException('Candidate assignment changed. Reload the page before updating.');
+      }
       await tx.audit.create({ data: { actorId: actor.id, candidateId: id, subjectId: id, action: 'candidate.assigned', data: { recruiterId } } });
     });
     return { updated: true };
