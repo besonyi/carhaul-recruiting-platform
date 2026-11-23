@@ -1,4 +1,5 @@
 import { staffData } from '../../../lib/api';
+import { interviewStatuses } from '../../../lib/interviews';
 import { label, stages, tracks } from '../../../lib/labels';
 
 type Report = {
@@ -10,6 +11,8 @@ type Report = {
   byStage: Record<string, number>;
   bySource: Array<{ source: string; count: number }>;
   trend: Array<{ day: string; count: number }>;
+  outreach?: { attemptedCandidates: number; medianSeconds: number | null };
+  interviews?: Record<keyof typeof interviewStatuses, number>;
 };
 
 export const metadata = { title: 'Recruiting report' };
@@ -19,10 +22,11 @@ const counts = new Intl.NumberFormat('en-US');
 const shortDate = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
 const fullDate = new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeZone: 'UTC' });
 
-function Breakdown({ title, rows }: { title: string; rows: Array<{ name: string; count: number }> }) {
+function Breakdown({ title, rows, description }: { title: string; rows: Array<{ name: string; count: number }>; description?: string }) {
   const total = rows.reduce((sum, row) => sum + row.count, 0);
   return <section className="panel">
     <h2 className="text-xl font-extrabold">{title}</h2>
+    {description && <p className="mt-2 text-sm text-slate-700">{description}</p>}
     <ul className="mt-4 grid gap-3 text-sm">
       {rows.map(({ name, count }) => <li key={name}>
         <div className="flex items-baseline justify-between gap-3">
@@ -36,6 +40,17 @@ function Breakdown({ title, rows }: { title: string; rows: Array<{ name: string;
   </section>;
 }
 
+function formatDelay(seconds: number | null) {
+  if (seconds === null) return 'No recorded attempts';
+  if (seconds < 60) return 'Under 1 min';
+  const minutes = Math.round(seconds / 60);
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
+  if (days) return days + 'd ' + (hours % 24) + 'h';
+  if (hours) return hours + 'h ' + (minutes % 60) + 'm';
+  return minutes + ' min';
+}
+
 export default async function RecruitingReport({ searchParams }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
@@ -45,6 +60,7 @@ export default async function RecruitingReport({ searchParams }: {
   const query = new URLSearchParams({ days });
   if (track) query.set('track', track);
   const data = await staffData<Report>('/report?' + query);
+  const { outreach, interviews } = data;
   const peak = Math.max(1, ...data.trend.map(item => item.count));
   const metrics = [
     { label: 'New candidates', value: data.candidates },
@@ -107,6 +123,28 @@ export default async function RecruitingReport({ searchParams }: {
     <div className="grid gap-4 md:grid-cols-2">
       <Breakdown title="Current pipeline stages" rows={stages.map(stage => ({ name: label(stage), count: data.byStage[stage] ?? 0 }))} />
       <Breakdown title="First-application sources" rows={data.bySource.map(source => ({ name: source.source, count: source.count }))} />
+      {outreach && <section className="panel">
+        <h2 className="text-xl font-extrabold">First outreach</h2>
+        <p className="mt-2 text-sm text-slate-700">The first recorded outbound phone call, email, or SMS for each candidate in this group.</p>
+        <dl className="mt-4 grid gap-4">
+          <div>
+            <dt className="text-sm font-semibold text-slate-700">Median time to first attempt</dt>
+            <dd className="mt-1 text-2xl font-bold tabular-nums">{formatDelay(outreach.medianSeconds)}</dd>
+          </div>
+          <div>
+            <dt className="text-sm font-semibold text-slate-700">Candidates with a recorded attempt</dt>
+            <dd className="mt-1 text-lg font-bold tabular-nums">
+              {counts.format(outreach.attemptedCandidates)} of {counts.format(data.candidates)}
+            </dd>
+          </div>
+        </dl>
+      </section>}
+      {interviews && <Breakdown title="Interview outcomes"
+        description="Current results for interviews whose scheduled start falls within the selected period, up to now."
+        rows={(Object.keys(interviewStatuses) as Array<keyof typeof interviewStatuses>).map(status => ({
+          name: status === 'SCHEDULED' ? 'Awaiting outcome' : interviewStatuses[status],
+          count: interviews[status],
+        }))} />}
     </div>
   </section>;
 }

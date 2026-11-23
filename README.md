@@ -55,6 +55,8 @@ Open **Recruiting report** in the staff navigation and choose the last 7, 30, or
 
 Source categories use the first Quick Apply recorded for each candidate. Recognized sources are grouped by channel, unknown values appear as **Other**, and missing sources appear as **Unattributed**. The report returns aggregate counts.
 
+**First outreach** shows how many new candidates had an outbound call, email, or SMS logged in the contact history, and the median delay from profile creation to the first such attempt. The median uses candidates with a recorded attempt. **Interview outcomes** counts interviews by current status using their scheduled start in the selected period, up to the time the report is viewed.
+
 ```text
 npm test
 npm run build

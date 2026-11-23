@@ -1,4 +1,4 @@
-import { Prisma, Stage, Track } from '@prisma/client';
+import { InterviewStatus, Prisma, Stage, Track } from '@prisma/client';
 import { db } from './config';
 
 export const reportPeriods = ['7', '30', '90'] as const;
@@ -44,7 +44,7 @@ export async function recruitingReport(period: ReportPeriod, track?: Track) {
   const now = new Date();
   const { start, end } = reportWindow(period, now);
   const filter = track ? Prisma.sql`AND c."track" = ${track}::"Track"` : Prisma.empty;
-  const [rows, applications] = await db.$transaction([
+  const [rows, applications, [outreach], interviewRows] = await db.$transaction([
     db.$queryRaw<ReportRow[]>`
       SELECT c."stage", c."createdAt"::date::text AS day,
         CASE
@@ -72,6 +72,40 @@ export async function recruitingReport(period: ReportPeriod, track?: Track) {
     db.application.count({
       where: { createdAt: { gte: start, lt: end }, ...(track ? { candidate: { track } } : {}) },
     }),
+    db.$queryRaw<Array<{ attemptedCandidates: bigint; medianSeconds: number | null }>>`
+      SELECT count(*) AS "attemptedCandidates",
+        percentile_cont(0.5) WITHIN GROUP (
+          ORDER BY extract(epoch FROM (first_attempt."occurredAt" - c."createdAt"))::double precision
+        ) AS "medianSeconds"
+      FROM "Candidate" c
+      JOIN LATERAL (
+        SELECT contact."occurredAt"
+        FROM "CandidateContact" contact
+        WHERE contact."candidateId" = c.id
+          AND contact."direction" = 'OUTBOUND'
+          AND contact."occurredAt" >= c."createdAt"
+          AND contact."occurredAt" < ${end}
+        ORDER BY contact."occurredAt"
+        LIMIT 1
+      ) AS first_attempt ON true
+      WHERE c."createdAt" >= ${start} AND c."createdAt" < ${end}
+      ${filter}
+    `,
+    db.$queryRaw<Array<{ status: InterviewStatus; total: bigint }>>`
+      SELECT i."status", count(*) AS total
+      FROM "CandidateInterview" i
+      JOIN "Candidate" c ON c.id = i."candidateId"
+      WHERE i."scheduledAt" >= ${start} AND i."scheduledAt" < ${end}
+      ${filter}
+      GROUP BY i."status"
+    `,
   ], { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead });
-  return { ...summarizeReport(rows, period, now), applications };
+  const interviews = Object.fromEntries(Object.values(InterviewStatus).map(status => [status, 0])) as Record<InterviewStatus, number>;
+  for (const row of interviewRows) interviews[row.status] = Number(row.total);
+  return {
+    ...summarizeReport(rows, period, now),
+    applications,
+    outreach: { attemptedCandidates: Number(outreach.attemptedCandidates), medianSeconds: outreach.medianSeconds },
+    interviews,
+  };
 }

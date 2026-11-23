@@ -201,6 +201,7 @@ model CandidateContact {
   createdAt   DateTime @default(now())
 
   @@index([candidateId, occurredAt, id])
+  @@index([candidateId, direction, occurredAt])
 }
 
 model FollowUp {
@@ -236,6 +237,7 @@ model CandidateInterview {
 
   @@index([candidateId, scheduledAt])
   @@index([assigneeId, status, scheduledAt, id])
+  @@index([scheduledAt])
 }
 
 model Audit {

@@ -92,6 +92,12 @@ The production build and all 11 unit tests passed. An isolated PostgreSQL databa
 - [x] Reschedule open interviews and record completed, canceled, or no-show outcomes. Audit changes and reject stale edits.
 - [x] Verify all eight migrations, the production build, all 18 tests, duplicate submissions, permissions, and the mobile schedule-to-outcome workflow.
 
+## Recruiting activity metrics
+
+- [x] Show median time from candidate creation to the first logged outbound attempt and how many candidates had an attempt.
+- [x] Show interview results by scheduled date using the existing period and driving-path filters.
+- [x] Verify nine migrations, the production build, all 18 tests, SQL aggregation, mobile rendering, and compatibility with the previous report response during deployment.
+
 ## Home image
 
 `apps/web/public/car-hauler.webp` was created with built-in ImageGen and appears as an industry illustration.
