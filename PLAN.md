@@ -104,6 +104,13 @@ The production build and all 11 unit tests passed. An isolated PostgreSQL databa
 - [x] Record accepted, declined, and withdrawn outcomes with an audit event and keep pipeline decisions under staff control.
 - [x] Verify all ten migrations, the production build, all 19 tests, concurrent outcome protection, and the mobile record-to-outcome workflow.
 
+## CRM pipeline pagination
+
+- [x] Keep the last successful search filters when navigating between result pages. Start a new search on page one.
+- [x] Verify the production build, all 19 API tests, and search, pagination, and failure recovery with a mocked API response.
+- [x] Verify in Chrome at 390 px against a local mock API with 56 synthetic candidates. Confirm Next and Previous retain applied filters, a new search starts on page one, and an API error preserves existing results.
+- [x] Verify mobile Chrome end to end with 61 synthetic candidates in PostgreSQL. Confirm pagination uses the applied filters while the form has unsaved edits, and confirm a new search starts on page one.
+
 ## Home image
 
 `apps/web/public/car-hauler.webp` was created with built-in ImageGen and appears as an industry illustration.

@@ -65,15 +65,16 @@ export async function logout() {
 }
 
 export async function searchPipeline(previous: PipelineState, form: FormData): Promise<PipelineState> {
-  const data = {
+  const requestedPage = optional(form, 'page');
+  const filters = requestedPage ? previous.filters : {
     q: optional(form, 'q'),
     track: optional(form, 'track'),
-    page: Number(optional(form, 'page') || 1),
   };
+  const data = { ...filters, page: Number(requestedPage || 1) };
   const response = await api('/crm/candidates/search', { method: 'POST', auth: true, data });
   if (response.status === 401) redirect('/crm/login');
   if (!response.ok) return { ...previous, message: (await result(response)).message };
-  return { data: await response.json() as PipelineData, page: data.page };
+  return { data: await response.json() as PipelineData, page: data.page, filters };
 }
 
 export async function saveJob(_: Result, form: FormData) {
