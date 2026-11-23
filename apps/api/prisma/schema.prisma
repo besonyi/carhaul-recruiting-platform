@@ -37,6 +37,25 @@ enum Stage {
   DUPLICATE
 }
 
+enum ContactChannel {
+  CALL
+  EMAIL
+  SMS
+}
+
+enum ContactDirection {
+  INBOUND
+  OUTBOUND
+}
+
+enum ContactOutcome {
+  REACHED
+  NO_RESPONSE
+  VOICEMAIL
+  MESSAGE_SENT
+  MESSAGE_RECEIVED
+}
+
 model Staff {
   id           String @id @default(uuid())
   email        String @unique
@@ -48,6 +67,7 @@ model Staff {
   sessions     Session[]
   candidates   Candidate[]
   followUps    FollowUp[]
+  contacts     CandidateContact[]
 }
 
 model Session {
@@ -95,6 +115,7 @@ model Candidate {
   applications Application[]
   extendedApplication ExtendedApplication?
   notes        Note[]
+  contacts     CandidateContact[]
   audit        Audit[]
   followUps    FollowUp[]
 
@@ -149,6 +170,22 @@ model Note {
   createdAt   DateTime @default(now())
 
   @@index([candidateId, createdAt])
+}
+
+model CandidateContact {
+  id          String @id
+  candidateId String
+  candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  authorId    String
+  author      Staff @relation(fields: [authorId], references: [id])
+  channel     ContactChannel
+  direction   ContactDirection
+  outcome     ContactOutcome
+  summary     String?
+  occurredAt  DateTime
+  createdAt   DateTime @default(now())
+
+  @@index([candidateId, occurredAt, id])
 }
 
 model FollowUp {

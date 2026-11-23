@@ -1,5 +1,6 @@
 'use server';
 
+import { randomUUID } from 'node:crypto';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
@@ -121,6 +122,25 @@ export async function saveCandidate(_: Result, form: FormData) {
     else revalidatePath('/crm');
   }
   return result(response);
+}
+
+export async function saveContact(previous: Result & { id: string }, form: FormData) {
+  const path = '/crm/candidates/' + encodeURIComponent(get(form, 'candidateId'));
+  const response = await api(path + '/contacts', {
+    method: 'POST',
+    auth: true,
+    data: {
+      id: previous.id,
+      channel: get(form, 'channel'),
+      direction: get(form, 'direction'),
+      outcome: get(form, 'outcome'),
+      summary: optional(form, 'summary'),
+      occurredAt: optional(form, 'occurredAt'),
+    },
+  });
+  if (!response.ok) return { ...await result(response), id: previous.id };
+  revalidatePath(path);
+  return { success: true, message: 'Contact recorded.', id: randomUUID() };
 }
 
 export async function manageInvitation(_: InvitationResult, form: FormData): Promise<InvitationResult> {

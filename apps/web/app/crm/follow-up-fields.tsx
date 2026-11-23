@@ -2,16 +2,16 @@
 
 import { useEffect, useState } from 'react';
 
-export function FollowUpDueField() {
-  const [dueAt, setDueAt] = useState('');
+export function LocalDateTimeField({ name, label, required }: { name: string; label: string; required?: boolean }) {
+  const [timestamp, setTimestamp] = useState('');
   return <>
-    <label className="field">Due date and time (your local time)
-      <input required type="datetime-local" onChange={event => {
+    <label className="field">{label}
+      <input required={required} type="datetime-local" onChange={event => {
         const value = new Date(event.target.value);
-        setDueAt(Number.isNaN(value.getTime()) ? '' : value.toISOString());
+        setTimestamp(Number.isNaN(value.getTime()) ? '' : value.toISOString());
       }} />
     </label>
-    <input type="hidden" name="dueAt" value={dueAt} />
+    <input type="hidden" name={name} value={timestamp} />
   </>;
 }
 

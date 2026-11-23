@@ -1,4 +1,4 @@
-import { JobStatus, Stage, Track } from '@prisma/client';
+import { ContactChannel, ContactDirection, ContactOutcome, JobStatus, Stage, Track } from '@prisma/client';
 import { z } from 'zod';
 
 const text = (max: number) => z.string().trim().min(1).max(max);
@@ -40,6 +40,24 @@ export const staffLogin = z.strictObject({
   code: z.string().regex(/^\d{6}$/, 'Enter the six-digit authenticator code.').optional(),
 });
 export const noteInput = z.strictObject({ body: text(2000) });
+export const contactInput = z.strictObject({
+  id: uuid,
+  channel: z.enum(ContactChannel),
+  direction: z.enum(ContactDirection),
+  outcome: z.enum(ContactOutcome),
+  summary: optional(1000),
+  occurredAt: z.iso.datetime({ offset: true }).transform(value => new Date(value))
+    .refine(date => date.getTime() <= Date.now(), 'Contact time must be in the past.').optional(),
+}).superRefine(({ channel, direction, outcome }, ctx) => {
+  const call = channel === ContactChannel.CALL;
+  if (outcome === ContactOutcome.VOICEMAIL && !call) {
+    ctx.addIssue({ code: 'custom', path: ['outcome'], message: 'Voicemail requires a call.' });
+  }
+  if ((outcome === ContactOutcome.MESSAGE_SENT && (call || direction !== ContactDirection.OUTBOUND))
+    || (outcome === ContactOutcome.MESSAGE_RECEIVED && (call || direction !== ContactDirection.INBOUND))) {
+    ctx.addIssue({ code: 'custom', path: ['outcome'], message: 'Select an outcome that matches the channel and direction.' });
+  }
+});
 export const assignmentInput = z.strictObject({ recruiterId: uuid.nullable() });
 export const followUpInput = z.strictObject({
   title: text(160),

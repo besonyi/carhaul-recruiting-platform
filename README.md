@@ -39,6 +39,10 @@ For an existing checkout, regenerate Prisma Client with `npm run postinstall -w 
 
 Use **Follow-ups** on a candidate profile to give the task a name, select the staff member responsible, and enter a due time in your local time zone. **My follow-ups** lists your pending tasks by due time and marks overdue tasks. Completed and canceled tasks stay on the candidate profile and in the activity history.
 
+### Record a candidate contact
+
+After a phone call, email, or text message, open **Contact history** on the candidate profile. Select the channel, direction, and outcome. Add an optional summary and the actual local time of the contact, or leave the time blank to record it as happening now. The newest contacts appear first with the date and the staff member who recorded them. Update the recruitment stage separately when appropriate.
+
 ### Read the recruiting report
 
 Open **Recruiting report** in the staff navigation and choose the last 7, 30, or 90 UTC calendar days and a driving path. **New candidates** counts distinct profiles created during that period. The stage breakdown and **Currently hired in this group** show where those candidates are now. **Quick applications received** counts submissions during the period, including repeat submissions and submissions from profiles created earlier.

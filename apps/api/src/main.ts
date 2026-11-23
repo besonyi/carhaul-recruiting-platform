@@ -10,7 +10,7 @@ import type { Request, Response, NextFunction } from 'express';
 import helmet from 'helmet';
 import { z } from 'zod';
 import { carrier, db, mfaKey, mfaRequired, notice, quickApplyEnabled } from './config';
-import { applicationInput, assignmentInput, followUpInput, jobInput, noteInput, staffLogin, stageInput, uuid } from './domain';
+import { applicationInput, assignmentInput, contactInput, followUpInput, jobInput, noteInput, staffLogin, stageInput, uuid } from './domain';
 import { draftAnswers, extendedAnswers, extendedProfileFields, extendedSubmission, invitationFor, issueInvitation, revokeInvitation, writeExtended } from './extended-application';
 import { redis, withinLimit } from './integrations';
 import { recruitingReport, reportPeriods } from './recruiting-report';
@@ -273,6 +273,10 @@ class CrmController {
         applications: { orderBy: { createdAt: 'desc' }, include: { consent: true, job: { select: { title: true } } } },
         extendedApplication: { select: extendedProfileFields },
         notes: { orderBy: { createdAt: 'desc' } },
+        contacts: {
+          orderBy: [{ occurredAt: 'desc' }, { id: 'desc' }],
+          include: { author: { select: { email: true } } },
+        },
         followUps: { orderBy: [
           { completedAt: { sort: 'asc', nulls: 'first' } }, { canceledAt: { sort: 'asc', nulls: 'first' } },
           { dueAt: 'asc' }, { id: 'asc' },
@@ -346,6 +350,34 @@ class CrmController {
       skip: (page - 1) * 50, take: 51,
     });
     return { items: items.slice(0, 50), hasNext: items.length > 50 };
+  }
+
+  @Post('candidates/:id/contacts')
+  async logContact(@Req() req: Request, @Param('id') rawId: string, @Body() input: unknown) {
+    const actor = await staff(req);
+    const candidateId = parse(uuid, rawId);
+    const { occurredAt, ...details } = parse(contactInput, input);
+    return db.$transaction(async tx => {
+      if (!(await tx.candidate.findUnique({ where: { id: candidateId }, select: { id: true } }))) throw new NotFoundException();
+      const created = await tx.candidateContact.createMany({
+        data: [{ ...details, candidateId, authorId: actor.id, occurredAt: occurredAt ?? new Date() }],
+        skipDuplicates: true,
+      });
+      if (created.count) {
+        await tx.audit.create({ data: {
+          candidateId, actorId: actor.id, subjectId: details.id, action: 'candidate.contactLogged',
+        } });
+      } else {
+        const previous = await tx.candidateContact.findUnique({ where: { id: details.id } });
+        if (!previous || previous.candidateId !== candidateId || previous.authorId !== actor.id
+          || previous.channel !== details.channel || previous.direction !== details.direction
+          || previous.outcome !== details.outcome || previous.summary !== (details.summary ?? null)
+          || (occurredAt && previous.occurredAt.getTime() !== occurredAt.getTime())) {
+          throw new ConflictException('That contact submission is already in use. Reload the candidate and try again.');
+        }
+      }
+      return { id: details.id };
+    });
   }
 
   @Post('candidates/:id/follow-ups') async addFollowUp(@Req() req: Request, @Param('id') rawId: string, @Body() input: unknown) {

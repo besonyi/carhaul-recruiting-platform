@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { createHmac } from 'node:crypto';
 import { test } from 'node:test';
-import { applicationInput, followUpInput, jobInput, stageInput } from '../src/domain';
+import { applicationInput, contactInput, followUpInput, jobInput, stageInput } from '../src/domain';
 import { passwordHash, rateLimitClient, sessionHash, sessionToken, verifyPassword } from '../src/security';
 import { draftAnswers, extendedAnswers, extendedSubmission } from '../src/extended-application';
 import { authenticatorKey, decryptMfaSecret, encryptMfaSecret, matchingTotpStep, readMfaKey } from '../src/staff-mfa';
@@ -156,4 +156,15 @@ test('report totals use cohort counts, current stages and zero-filled days', () 
   assert.equal(summary.byStage.INTERVIEW, 0);
   assert.deepEqual(summary.bySource.slice(0, 2), [{ source: 'Referral', count: 3 }, { source: 'Search', count: 2 }]);
   assert.deepEqual(summary.trend.map(item => item.count), [0, 0, 0, 0, 0, 3, 2]);
+});
+
+test('validates contact direction, outcome and occurrence time', () => {
+  const call = { id: crypto.randomUUID(), channel: 'CALL', direction: 'OUTBOUND', outcome: 'VOICEMAIL' };
+  assert.equal(contactInput.safeParse(call).success, true);
+  assert.equal(contactInput.safeParse({ ...call, channel: 'SMS' }).success, false);
+  assert.equal(contactInput.safeParse({ ...call, outcome: 'MESSAGE_SENT' }).success, false);
+  assert.equal(contactInput.safeParse({ ...call, channel: 'EMAIL', direction: 'INBOUND', outcome: 'MESSAGE_RECEIVED' }).success, true);
+  assert.equal(contactInput.safeParse({ ...call, channel: 'EMAIL', direction: 'OUTBOUND', outcome: 'MESSAGE_RECEIVED' }).success, false);
+  assert.equal(contactInput.safeParse({ ...call, occurredAt: new Date(Date.now() + 60_000).toISOString() }).success, false);
+  assert.equal(contactInput.parse({ ...call, occurredAt: '2020-01-02T09:30:00-06:00' }).occurredAt?.toISOString(), '2020-01-02T15:30:00.000Z');
 });

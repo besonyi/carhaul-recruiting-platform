@@ -1,10 +1,13 @@
 import Link from 'next/link';
+import { randomUUID } from 'node:crypto';
 import { notFound, redirect } from 'next/navigation';
 import { api, staffData, type Track } from '../../../../lib/api';
+import { contactChannels, contactDirections, contactOutcomes } from '../../../../lib/contacts';
 import { operatingModels, ownerTrailers, routes } from '../../../../lib/invitation';
 import { label, stages, tracks } from '../../../../lib/labels';
 import { ActionForm } from '../../forms';
-import { FollowUpDueField, LocalDateTime } from '../../follow-up-fields';
+import { LocalDateTimeField, LocalDateTime } from '../../follow-up-fields';
+import { ContactForm } from '../../contact-form';
 import { InvitationForm } from '../../invitation-form';
 
 type Profile = {
@@ -13,6 +16,10 @@ type Profile = {
   applications: Array<{ id: string; createdAt: string; job?: { title: string }; details: Record<string, unknown>; consent?: { version: string; statement: string; acceptedAt: string } }>;
   extendedApplication: { expiresAt: string; revokedAt?: string; submittedAt?: string; draftSavedAt?: string; answers?: Record<string, unknown> } | null;
   notes: Array<{ id: string; body: string; authorId: string; createdAt: string }>;
+  contacts: Array<{
+    id: string; channel: keyof typeof contactChannels; direction: keyof typeof contactDirections;
+    outcome: keyof typeof contactOutcomes; summary: string | null; occurredAt: string; author: { email: string };
+  }>;
   followUps: Array<{ id: string; title: string; assigneeId: string; dueAt: string; completedAt: string | null; canceledAt: string | null }>;
   audit: Array<{ id: string; action: string; actorId?: string; createdAt: string; data?: { previous?: string; stage?: string; reason?: string; recruiterId?: string } }>;
 };
@@ -26,6 +33,7 @@ const fields = {
 const actions: Record<string, string> = {
   'application.received': 'Application received', 'candidate.stageChanged': 'Stage changed',
   'candidate.assigned': 'Assignment changed', 'candidate.noteAdded': 'Note added',
+  'candidate.contactLogged': 'Contact recorded',
   'extended.invited': 'Extended application invitation created',
   'extended.revoked': 'Extended application invitation revoked',
   'extended.submitted': 'Extended application submitted',
@@ -120,6 +128,15 @@ export default async function CandidatePage({ params }: { params: Promise<{ id: 
           <p className="text-sm font-semibold">{person(note.authorId)} · {formatDate(note.createdAt)}</p><p className="whitespace-pre-wrap">{note.body}</p>
         </article>)}
       </section>
+      <section className="panel lg:col-span-2"><h2 className="mb-3 text-xl font-extrabold">Contact history</h2>
+        <ContactForm candidateId={id} initialId={randomUUID()} />
+        {candidate.contacts.length === 0 && <p className="mt-4 text-sm text-slate-700">No contacts recorded yet.</p>}
+        <ul className="mt-4 grid gap-3">{candidate.contacts.map(item => <li key={item.id} className="border-t border-slate-200 pt-3">
+          <p className="font-bold">{contactChannels[item.channel]} · {contactDirections[item.direction]} · {contactOutcomes[item.outcome]}</p>
+          <p className="break-words text-sm text-slate-700"><LocalDateTime value={item.occurredAt} /> · {item.author.email}</p>
+          {item.summary && <p className="mt-1 whitespace-pre-wrap wrap-anywhere">{item.summary}</p>}
+        </li>)}</ul>
+      </section>
       <section className="panel lg:col-span-2"><h2 className="mb-3 text-xl font-extrabold">Follow-ups</h2>
         <ActionForm action="candidate" submit="Schedule follow-up" className="grid gap-4 sm:grid-cols-2">
           <input type="hidden" name="id" value={id} />
@@ -129,7 +146,7 @@ export default async function CandidatePage({ params }: { params: Promise<{ id: 
             <option value="" disabled>Select staff member</option>
             {staff.map(user => <option key={user.id} value={user.id}>{user.email}</option>)}
           </select></label>
-          <FollowUpDueField />
+          <LocalDateTimeField name="dueAt" label="Due date and time (your local time)" required />
         </ActionForm>
         <ul className="mt-4 grid gap-3">{candidate.followUps.map(item => <li key={item.id} className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-3">
           <div>

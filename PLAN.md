@@ -80,6 +80,12 @@ The production build and all 11 unit tests passed. An isolated PostgreSQL databa
 - [x] Track new candidates separately from Quick Apply submissions, with daily activity, current recruitment stages, and first-application source categories.
 - [x] Verify all six migrations, the production build, all 16 tests, report access controls, and mobile filtering. Verify that a repeat application counts as a submission while attribution stays with the candidate's first application.
 
+## Candidate contact history
+
+- [x] Record calls, email, and SMS in the candidate profile with channel, direction, outcome, occurrence time, author, and optional summary.
+- [x] Add an audit event and deduplicate retries without changing the candidate's recruitment stage.
+- [x] Verify all seven migrations, the production build, all 17 tests, authorization, concurrent retries, and mobile entry and retrieval.
+
 ## Home image
 
 `apps/web/public/car-hauler.webp` was created with built-in ImageGen and appears as an industry illustration.
