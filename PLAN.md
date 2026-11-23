@@ -104,6 +104,12 @@ The production build and all 11 unit tests passed. An isolated PostgreSQL databa
 - [x] Record accepted, declined, and withdrawn outcomes with an audit event and keep pipeline decisions under staff control.
 - [x] Verify all ten migrations, the production build, all 19 tests, concurrent outcome protection, and the mobile record-to-outcome workflow.
 
+## Offer outcomes in the recruiting report
+
+- [x] Show current outcomes for offers recorded in the selected period and driving path, including zero counts for statuses with no matching offers.
+- [x] Verify the production build and all 19 API tests.
+- [ ] Verify aggregation and mobile filters with synthetic offers in PostgreSQL. The local integration runner exited during database startup before reaching the report assertions.
+
 ## CRM pipeline pagination
 
 - [x] Keep the last successful search filters when navigating between result pages. Start a new search on page one.

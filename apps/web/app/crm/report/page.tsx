@@ -2,6 +2,13 @@ import { staffData } from '../../../lib/api';
 import { interviewStatuses } from '../../../lib/interviews';
 import { label, stages, tracks } from '../../../lib/labels';
 
+const offerStatuses = {
+  OPEN: 'Awaiting response',
+  ACCEPTED: 'Accepted',
+  DECLINED: 'Declined',
+  WITHDRAWN: 'Withdrawn',
+} as const;
+
 type Report = {
   from: string;
   through: string;
@@ -13,6 +20,7 @@ type Report = {
   trend: Array<{ day: string; count: number }>;
   outreach?: { attemptedCandidates: number; medianSeconds: number | null };
   interviews?: Record<keyof typeof interviewStatuses, number>;
+  offers?: Record<keyof typeof offerStatuses, number>;
 };
 
 export const metadata = { title: 'Recruiting report' };
@@ -60,7 +68,7 @@ export default async function RecruitingReport({ searchParams }: {
   const query = new URLSearchParams({ days });
   if (track) query.set('track', track);
   const data = await staffData<Report>('/report?' + query);
-  const { outreach, interviews } = data;
+  const { outreach, interviews, offers } = data;
   const peak = Math.max(1, ...data.trend.map(item => item.count));
   const metrics = [
     { label: 'New candidates', value: data.candidates },
@@ -144,6 +152,12 @@ export default async function RecruitingReport({ searchParams }: {
         rows={(Object.keys(interviewStatuses) as Array<keyof typeof interviewStatuses>).map(status => ({
           name: status === 'SCHEDULED' ? 'Awaiting outcome' : interviewStatuses[status],
           count: interviews[status],
+        }))} />}
+      {offers && <Breakdown title="Offer outcomes"
+        description="Current outcomes for offers recorded during the selected period."
+        rows={(Object.keys(offerStatuses) as Array<keyof typeof offerStatuses>).map(status => ({
+          name: offerStatuses[status],
+          count: offers[status],
         }))} />}
     </div>
   </section>;

@@ -1,4 +1,4 @@
-import { InterviewStatus, Prisma, Stage, Track } from '@prisma/client';
+import { InterviewStatus, OfferStatus, Prisma, Stage, Track } from '@prisma/client';
 import { db } from './config';
 
 export const reportPeriods = ['7', '30', '90'] as const;
@@ -44,7 +44,7 @@ export async function recruitingReport(period: ReportPeriod, track?: Track) {
   const now = new Date();
   const { start, end } = reportWindow(period, now);
   const filter = track ? Prisma.sql`AND c."track" = ${track}::"Track"` : Prisma.empty;
-  const [rows, applications, [outreach], interviewRows] = await db.$transaction([
+  const [rows, applications, [outreach], interviewRows, offerRows] = await db.$transaction([
     db.$queryRaw<ReportRow[]>`
       SELECT c."stage", c."createdAt"::date::text AS day,
         CASE
@@ -99,13 +99,24 @@ export async function recruitingReport(period: ReportPeriod, track?: Track) {
       ${filter}
       GROUP BY i."status"
     `,
+    db.$queryRaw<Array<{ status: OfferStatus; total: bigint }>>`
+      SELECT o."status", count(*) AS total
+      FROM "CandidateOffer" o
+      JOIN "Candidate" c ON c.id = o."candidateId"
+      WHERE o."createdAt" >= ${start} AND o."createdAt" < ${end}
+      ${filter}
+      GROUP BY o."status"
+    `,
   ], { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead });
   const interviews = Object.fromEntries(Object.values(InterviewStatus).map(status => [status, 0])) as Record<InterviewStatus, number>;
   for (const row of interviewRows) interviews[row.status] = Number(row.total);
+  const offers = Object.fromEntries(Object.values(OfferStatus).map(status => [status, 0])) as Record<OfferStatus, number>;
+  for (const row of offerRows) offers[row.status] = Number(row.total);
   return {
     ...summarizeReport(rows, period, now),
     applications,
     outreach: { attemptedCandidates: Number(outreach.attemptedCandidates), medianSeconds: outreach.medianSeconds },
     interviews,
+    offers,
   };
 }
