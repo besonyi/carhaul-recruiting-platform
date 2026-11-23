@@ -10,21 +10,23 @@ export const metadata: Metadata = {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const site = await siteData();
+  const brand = site.carrier || 'Car Hauling Careers';
   return <html lang="en"><body>
-    <a href="#main" className="sr-only focus:not-sr-only">Skip to content</a>
-    <header className="border-b border-slate-700 bg-[#14212a] text-white">
-      <div className="shell flex flex-wrap items-center justify-between gap-x-8 gap-y-3 py-4">
-        <Link href="/" className="font-extrabold uppercase tracking-wide">{site.carrier || 'Car Hauling Careers'}</Link>
-        <nav aria-label="Main navigation" className="flex flex-wrap gap-x-5 gap-y-2 text-sm font-semibold">
+    <a href="#main" className="site-skip sr-only focus:not-sr-only">Skip to content</a>
+    <header className="site-header">
+      <div className="career-shell site-header-inner">
+        <Link href="/" className="site-brand"><span className="site-mark" aria-hidden /><span>{brand}</span></Link>
+        <nav aria-label="Main navigation" className="site-nav">
           <Link href="/company-drivers">Company Drivers</Link>
           <Link href="/owner-operators">Owner Operators</Link>
-          <Link href="/jobs">Open Jobs</Link>
+          <Link href="/jobs" className="site-nav-jobs">Open Jobs <span aria-hidden>↗</span></Link>
         </nav>
       </div>
     </header>
     <main id="main">{children}</main>
-    <footer className="mt-12 border-t border-slate-300"><div className="shell flex flex-wrap justify-between gap-4 py-6 text-sm">
-      <span>{site.carrier || 'Car Hauling Careers'}</span><div className="flex gap-5"><Link href="/privacy">Application privacy</Link><Link href="/crm">Staff sign in</Link></div>
+    <footer className="site-footer"><div className="career-shell site-footer-inner">
+      <Link href="/" className="site-brand"><span className="site-mark" aria-hidden /><span>{brand}</span></Link>
+      <nav aria-label="Footer navigation"><Link href="/privacy">Application privacy</Link><Link href="/crm">Staff sign in</Link></nav>
     </div></footer>
   </body></html>;
 }

@@ -56,6 +56,12 @@ The production build and all 11 unit tests passed. An isolated PostgreSQL databa
 - [x] Validate the Blueprint against Render's published schema. Verify production-mode install and build, all 11 tests, and browser workflows using Render-shaped environment variables with local PostgreSQL and Redis.
 - [ ] Apply the Blueprint in the intended Render workspace and verify a live deployment. Workspace-level CLI validation requires authenticated Render access.
 
+## Careers homepage
+
+- [x] Redesign the public homepage, shared navigation and footer around the two CDL-A hiring paths.
+- [x] Show up to three published jobs on the homepage and preserve supported campaign parameters in the links to jobs and application pages.
+- [x] Verify layout in Chrome at 320, 390, 768 and 1440 pixels, navigate from the homepage to a published job and its application form, and check that draft jobs stay hidden. The production build, all 11 tests and existing browser workflows passed.
+
 ## Home image
 
 `apps/web/public/car-hauler.webp` was created with built-in ImageGen and appears as an industry illustration.

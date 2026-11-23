@@ -1,34 +1,77 @@
-import Link from 'next/link';
 import Image from 'next/image';
+import Link from 'next/link';
+import { api, type Job } from '../lib/api';
 import { tracks } from '../lib/labels';
+import './career-home.css';
 
-export default function Home() {
-  return <>
-    <section className="hero"><div className="shell grid items-center gap-8 py-12 md:grid-cols-[.9fr_1.1fr] lg:gap-12 lg:py-20">
-      <div>
-        <p className="mb-4 font-bold uppercase tracking-widest text-amber-300">CDL-A · Auto Transport</p>
-        <h1 className="display max-w-xl text-5xl uppercase sm:text-7xl">Build your career in car hauling.</h1>
-        <p className="mt-5 max-w-xl text-lg text-slate-200">Explore CDL-A company driver and owner operator opportunities.</p>
-        <Link className="button mt-7" href="/jobs">View open jobs <span className="ml-3" aria-hidden>↗</span></Link>
+type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
+
+const drivingPaths = [
+  { ...tracks.COMPANY_DRIVER, summary: 'Drive company equipment and put your CDL-A and car hauling experience to work.' },
+  { ...tracks.OWNER_OPERATOR, summary: 'Tell recruiting about your equipment and how you want to operate.' },
+];
+
+export default async function Home({ searchParams }: Props) {
+  const [params, response] = await Promise.all([searchParams, api('/jobs', { timeoutMs: 3500 })]);
+  const jobs: Job[] = response.ok ? (await response.json() as Job[]).slice(0, 3) : [];
+  const tracking = new URLSearchParams();
+  for (const key of ['utm_source', 'utm_medium', 'utm_campaign']) {
+    const value = params[key];
+    if (typeof value === 'string' && value.trim()) tracking.set(key, value.trim().slice(0, 100));
+  }
+  const query = tracking.size ? '?' + tracking : '';
+
+  return <div className="career-home">
+    <section className="career-hero" aria-labelledby="career-title">
+      <Image src="/car-hauler.webp" alt="A loaded car hauler on an open highway"
+        fill sizes="100vw" preload className="career-hero-image" />
+      <div className="career-shell career-hero-inner">
+        <div className="career-hero-copy">
+          <p className="career-kicker">CDL-A careers <span aria-hidden>·</span> Auto transport</p>
+          <h1 id="career-title">Build your career <span>in car hauling.</span></h1>
+          <p className="career-hero-summary">Explore CDL-A opportunities for company drivers and owner operators.</p>
+          <div className="career-hero-actions">
+            <Link href={'/jobs' + query} className="career-primary">View open jobs <span aria-hidden>↗</span></Link>
+            <a href="#driver-paths" className="career-secondary">Choose your path <span aria-hidden>↓</span></a>
+          </div>
+        </div>
       </div>
-      <figure className="relative overflow-hidden rounded-md border border-white/20">
-        <Image src="/car-hauler.webp" width={1672} height={941}
-          alt="An open two-level car hauler carrying vehicles on a highway"
-          className="aspect-video w-full object-cover"
-          sizes="(min-width: 1200px) 600px, (min-width: 768px) 52vw, 95vw"
-          preload />
-        <figcaption className="absolute bottom-0 right-0 bg-slate-950/85 px-3 py-1 text-xs text-white">Industry illustration</figcaption>
-      </figure>
-    </div></section>
-    <section className="shell py-12" aria-labelledby="paths">
-      <h2 id="paths" className="display mb-6 text-3xl uppercase sm:text-4xl">Find your driving path</h2>
-      <div className="grid gap-4 md:grid-cols-2">{Object.values(tracks).map(item =>
-        <article className="panel rail" key={item.slug}>
-          <h3 className="text-2xl font-extrabold">{item.label}</h3>
-          <p className="my-3 max-w-lg text-slate-700">{item.description}</p>
-          <Link className="font-bold underline" href={'/' + item.slug}>Explore {item.label.toLowerCase()}</Link>
-        </article>
-      )}</div>
+      <span className="career-image-credit">Industry illustration</span>
     </section>
-  </>;
+
+    <section id="driver-paths" className="career-shell career-paths" aria-labelledby="paths-title">
+      <h2 id="paths-title" className="career-heading">Choose your driving path</h2>
+      <div className="career-path-grid">
+        {drivingPaths.map(path => <article key={path.slug} className="career-path-card">
+          <h3>{path.label}</h3>
+          <p>{path.summary}</p>
+          <Link href={'/' + path.slug + query} className="career-path-link">
+            Explore {path.label.toLowerCase()} <span aria-hidden>↗</span>
+          </Link>
+        </article>)}
+      </div>
+    </section>
+
+    <section className="career-openings" aria-labelledby="opening-title">
+      <div className="career-shell">
+        <div className="career-section-header">
+          <h2 id="opening-title" className="career-heading">Open positions</h2>
+          <Link href={'/jobs' + query} className="career-index-link">Browse all jobs <span aria-hidden>↗</span></Link>
+        </div>
+        {jobs.length > 0 ? <ul className="career-job-list">
+          {jobs.map(job => <li key={job.id}>
+            <Link href={'/jobs/' + job.slug + query} className="career-job-row">
+              <div>
+                <h3>{job.title}</h3>
+                <p>{tracks[job.track].label} <span aria-hidden>·</span> {job.region}</p>
+              </div>
+              <span className="career-job-arrow" aria-hidden>↗</span>
+            </Link>
+          </li>)}
+        </ul> : <p className="career-openings-empty" role="status">
+          {response.ok ? 'There are no open positions listed right now.' : 'Job listings are temporarily unavailable.'}
+        </p>}
+      </div>
+    </section>
+  </div>;
 }
