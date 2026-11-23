@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
+import { createHmac } from 'node:crypto';
 import { test } from 'node:test';
 import { applicationInput, followUpInput, jobInput, stageInput } from '../src/domain';
-import { passwordHash, sessionHash, sessionToken, verifyPassword } from '../src/security';
+import { passwordHash, rateLimitClient, sessionHash, sessionToken, verifyPassword } from '../src/security';
 import { draftAnswers, extendedAnswers, extendedSubmission } from '../src/extended-application';
 
 const applicant = {
@@ -93,4 +94,21 @@ test('follow-up times require an offset and normalize to an absolute timestamp',
   assert.equal(item.dueAt.toISOString(), '2026-11-24T16:00:00.000Z');
   assert.equal(followUpInput.safeParse({ ...input, dueAt: '2026-11-24T10:00:00' }).success, false);
   assert.equal(followUpInput.safeParse({ ...input, assigneeId: 'someone' }).success, false);
+});
+
+test('separates authenticated visitor quotas and falls back to the peer for unverified metadata', () => {
+  const secret = 'test-only signing key';
+  const peer = '10.0.0.2';
+  const first = '192.0.2.10';
+  const second = '2001:db8::20';
+  const sign = (address: string) => createHmac('sha256', secret).update(address).digest('hex');
+  const fallback = rateLimitClient(peer, undefined, undefined, secret);
+  const firstClient = rateLimitClient(peer, first, sign(first), secret);
+  assert.notEqual(firstClient, fallback);
+  assert.notEqual(firstClient, rateLimitClient(peer, second, sign(second), secret));
+  assert.equal(rateLimitClient(peer, first, sign(second), secret), fallback);
+  assert.equal(rateLimitClient(peer, first, sign(first), undefined), fallback);
+  assert.equal(rateLimitClient(peer, [first, second], sign(first), secret), fallback);
+  assert.equal(rateLimitClient(peer, 'invalid', sign('invalid'), secret), fallback);
+  assert.equal(firstClient.includes(first), false);
 });

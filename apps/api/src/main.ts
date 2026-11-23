@@ -13,7 +13,7 @@ import { carrier, db, notice, quickApplyEnabled } from './config';
 import { applicationInput, assignmentInput, followUpInput, jobInput, noteInput, staffLogin, stageInput, uuid } from './domain';
 import { draftAnswers, extendedAnswers, extendedProfileFields, extendedSubmission, invitationFor, issueInvitation, revokeInvitation, writeExtended } from './extended-application';
 import { redis, withinLimit } from './integrations';
-import { sessionHash, sessionToken, verifyPassword } from './security';
+import { rateLimitClient, sessionHash, sessionToken, verifyPassword } from './security';
 
 function parse<T>(schema: z.ZodType<T>, input: unknown): T {
   const result = schema.safeParse(input);
@@ -37,6 +37,12 @@ async function throttle(key: string, limit: number, seconds: number) {
   try { allowed = await withinLimit(key, limit, seconds); }
   catch { throw new ServiceUnavailableException('Please try again shortly.'); }
   if (!allowed) throw new HttpException('Too many attempts. Please try again later.', 429);
+}
+
+function clientKey(req: Request) {
+  return rateLimitClient(
+    req.ip, req.headers['x-carhaul-client-ip'], req.headers['x-carhaul-client-signature'], process.env.RECRUITING_PROXY_SECRET,
+  );
 }
 
 const jobTrack = z.enum(Track);
@@ -78,7 +84,7 @@ class PublicController {
 
   @Post('applications') async apply(@Req() req: Request, @Body() input: unknown) {
     if (!quickApplyEnabled) throw new ServiceUnavailableException('Quick Apply is currently unavailable.');
-    await throttle('apply:' + req.ip, 10, 900);
+    await throttle('apply:' + clientKey(req), 10, 900);
     const { name, email, phone, state, zip, track, jobId, accepted, noticeVersion, ...details } = parse(applicationInput, input);
     if (noticeVersion !== notice.version) throw new ConflictException('The consent notice changed. Reload the form and review it again.');
 
@@ -134,7 +140,7 @@ const dummyHash = '0'.repeat(32) + ':' + '0'.repeat(128);
 @Controller('crm')
 class CrmController {
   @Post('login') @HttpCode(200) async login(@Req() req: Request, @Body() input: unknown) {
-    await throttle('login:ip:' + req.ip, 30, 900);
+    await throttle('login:ip:' + clientKey(req), 30, 900);
     const { email, password } = parse(staffLogin, input);
     const normalized = email.toLowerCase();
     await throttle('login:account:' + sessionHash(normalized), 8, 900);

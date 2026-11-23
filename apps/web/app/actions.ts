@@ -38,12 +38,12 @@ export async function submitApplication(_: Result, form: FormData) {
       equipment: optional(form, 'equipment'),
     } : {}),
   };
-  return result(await api('/applications', { method: 'POST', data }));
+  return result(await api('/applications', { method: 'POST', data, rateLimited: true }));
 }
 
 export async function login(_: Result, form: FormData) {
   const response = await api('/crm/login', {
-    method: 'POST', data: { email: get(form, 'email'), password: String(form.get('password') ?? '') },
+    method: 'POST', rateLimited: true, data: { email: get(form, 'email'), password: String(form.get('password') ?? '') },
   });
   if (!response.ok) return result(response);
   const { token, expiresAt } = await response.json();

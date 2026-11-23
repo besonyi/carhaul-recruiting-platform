@@ -62,6 +62,11 @@ The production build and all 11 unit tests passed. An isolated PostgreSQL databa
 - [x] Show up to three published jobs on the homepage and preserve supported campaign parameters in the links to jobs and application pages.
 - [x] Verify layout in Chrome at 320, 390, 768 and 1440 pixels, navigate from the homepage to a published job and its application form, and check that draft jobs stay hidden. The production build, all 11 tests and existing browser workflows passed.
 
+## Production intake protection
+
+- [x] Separate Quick Apply and staff sign-in quotas by the verified visitor address at Render ingress, with a direct-peer fallback for local development and missing metadata.
+- [x] Verify the Blueprint schema, production build, all 12 tests and browser requests reaching separate visitor-scoped Redis keys for Quick Apply and login in the local Render-shaped environment.
+
 ## Home image
 
 `apps/web/public/car-hauler.webp` was created with built-in ImageGen and appears as an industry illustration.

@@ -51,6 +51,16 @@ Open the [Render Blueprint for this repository](https://dashboard.render.com/blu
 
 The Blueprint installs dependencies from the workspace root and applies Prisma migrations before each API deploy. The web service reads the API's internal address from Render. The web service's `/healthz` endpoint checks the API, PostgreSQL and Key Value. Render supplies the initial HTTPS public origin through `RENDER_EXTERNAL_URL`. If you add a custom domain, set `WEB_ORIGIN` on the web service to its HTTPS origin so candidate invitations point there.
 
+When diagnosing a manually created service, use the repository root and check that each command is in its own field.
+
+| Render setting | Public Web Service | Private API |
+| --- | --- | --- |
+| Build Command | `npm ci --include=dev && npm run build -w web` | `npm ci --include=dev && npm run build -w api` |
+| Pre-Deploy Command | Leave empty | `npm run db:deploy` |
+| Start Command | `npm run start -w web -- --hostname 0.0.0.0` | `npm run start -w api` |
+
+A **Publish Directory** field indicates that the resource was created as a Static Site. A missing `.next` build usually means Next.js was started before the build completed. If Prisma reports a missing datasource URL, verify that `DATABASE_URL` is set on the private API and that the web service's Pre-Deploy Command is empty. Use the Blueprint to wire the required service addresses and credentials.
+
 The public site can start with its generic title and an empty jobs list. Set `CARRIER_NAME`, `CONTACT_NOTICE_VERSION` and `CONTACT_NOTICE_TEXT` in the API service environment when verified carrier information and approved consent copy are available. These values enable Quick Apply. Review the production controls below before taking real applications.
 
 After the API's first successful deploy, open its Render Shell and run the following from the repository root to provision the first administrator. Replace the example email with the administrator's work address.
@@ -73,6 +83,6 @@ Redis enforces intake and login limits. BullMQ is available for future workers. 
 
 Provide verified carrier and recruiting information along with approved privacy and consent copy. Configure HTTPS, private service networking, a trusted ingress for per-client rate limits, encryption and scheduled backups for the database, staff MFA, and retention/deletion procedures. The local database credentials are development-only. Multiple internal staff roles share access to candidate profiles in this MVP.
 
-The API rate limit keys use its direct peer address. Browser requests sent through one Next.js process share that process's IP allowance. Resolve client identity at the trusted ingress and align the application rate limits before opening intake to the public.
+The Render Blueprint generates a shared `RECRUITING_PROXY_SECRET` for the web and API services. The web server signs the visitor address supplied by Render's public ingress for Quick Apply and staff sign-in. The private API verifies the signature before assigning a Redis quota. Local development and requests without verified visitor metadata use the direct peer's quota. Keep the API private and attach the same environment group to both services when configuring Render manually.
 
 Quick Apply and the extended questionnaire exclude SSNs, CDL numbers and document uploads. Persistent applicant accounts, formal application and compliance workflows, onboarding, SMS, AI and analytics are tracked as follow-on work.

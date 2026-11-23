@@ -9,6 +9,7 @@ services:
     startCommand: npm run start -w web -- --hostname 0.0.0.0
     healthCheckPath: /healthz
     envVars:
+      - fromGroup: carhaul-recruiting-proxy
       - key: API_HOSTPORT
         fromService:
           name: carhaul-recruiting-api
@@ -25,6 +26,7 @@ services:
     preDeployCommand: npm run db:deploy
     startCommand: npm run start -w api
     envVars:
+      - fromGroup: carhaul-recruiting-proxy
       - key: API_HOST
         value: 0.0.0.0
       - key: PORT
@@ -53,3 +55,9 @@ databases:
     plan: 0.1c-256mb
     postgresMajorVersion: "17"
     ipAllowList: []
+
+envVarGroups:
+  - name: carhaul-recruiting-proxy
+    envVars:
+      - key: RECRUITING_PROXY_SECRET
+        generateValue: true
