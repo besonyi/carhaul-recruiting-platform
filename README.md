@@ -73,6 +73,20 @@ npm run staff:create -- admin@example.test ADMIN
 unset STAFF_INITIAL_PASSWORD
 ```
 
+### Enroll staff MFA
+
+The Render Blueprint generates `STAFF_MFA_KEY` on the private API. For local use, configure a random 32-byte key encoded as base64 in `apps/api/.env`. Retain the key in your secret manager with the database backup so encrypted authenticator records can be restored.
+
+After applying database migrations, run this from a private interactive terminal connected to the target API environment:
+
+```text
+npm run staff:mfa -- admin@example.test
+```
+
+Add the displayed setup key as a time-based entry in the staff member's authenticator and confirm with a six-digit code. Enrollment revokes that account's existing sessions. Wait for the next code before signing in. If a device is lost, a verified operator can run the same command to replace the authenticator and revoke sessions again.
+
+After enrolling all active staff, set `STAFF_MFA_REQUIRED=true` on the private API and redeploy. This blocks sign-in for staff without MFA and expires access from existing password-only sessions. Enrolled accounts require a code even while that environment setting is off.
+
 ## Data flow
 
 Next.js performs mutations through server actions and calls the private Nest API. Staff use expiring, revocable sessions with hashed tokens and an HTTP-only cookie. Admins manage jobs. Admins and recruiters review applicants and update the pipeline. PostgreSQL stores normalized candidate profiles, each submission, the consent statement and timestamp, and transactional audit events. Candidates match by normalized phone and driving track. Repeat submissions keep their own contact snapshot and preserve the existing pipeline stage.

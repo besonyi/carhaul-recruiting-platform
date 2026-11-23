@@ -43,6 +43,8 @@ model Staff {
   passwordHash String
   role         Role
   active       Boolean @default(true)
+  mfaCiphertext String?
+  mfaLastStep  Int?
   sessions     Session[]
   candidates   Candidate[]
   followUps    FollowUp[]
@@ -51,6 +53,7 @@ model Staff {
 model Session {
   hash      String @id
   expiresAt DateTime
+  mfaVerified Boolean @default(false)
   staffId   String
   staff     Staff @relation(fields: [staffId], references: [id], onDelete: Cascade)
 

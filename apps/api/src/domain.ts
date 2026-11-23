@@ -35,7 +35,10 @@ export const closingStages = new Set<Stage>([Stage.REJECTED, Stage.WITHDRAWN, St
 export const stageInput = z.strictObject({
   stage: z.enum(Stage), reason: optional(500), previous: z.enum(Stage),
 }).refine(value => !closingStages.has(value.stage) || Boolean(value.reason), 'A reason is required to close a candidate.');
-export const staffLogin = z.strictObject({ email: z.email().max(254), password: z.string().min(1).max(256) });
+export const staffLogin = z.strictObject({
+  email: z.email().max(254), password: z.string().min(1).max(256),
+  code: z.string().regex(/^\d{6}$/, 'Enter the six-digit authenticator code.').optional(),
+});
 export const noteInput = z.strictObject({ body: text(2000) });
 export const assignmentInput = z.strictObject({ recruiterId: uuid.nullable() });
 export const followUpInput = z.strictObject({

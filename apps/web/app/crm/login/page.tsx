@@ -9,6 +9,9 @@ export default async function Login() {
     <ActionForm action="login" submit="Sign in">
       <label className="field">Work email<input name="email" type="email" autoComplete="username" required /></label>
       <label className="field">Password<input name="password" type="password" autoComplete="current-password" required maxLength={256} /></label>
+      <label className="field">Authenticator code (if configured)
+        <input name="code" type="text" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} />
+      </label>
     </ActionForm>
   </section>;
 }

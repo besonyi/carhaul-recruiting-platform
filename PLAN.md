@@ -67,6 +67,13 @@ The production build and all 11 unit tests passed. An isolated PostgreSQL databa
 - [x] Separate Quick Apply and staff sign-in quotas by the verified visitor address at Render ingress, with a direct-peer fallback for local development and missing metadata.
 - [x] Verify the Blueprint schema, production build, all 12 tests and browser requests reaching separate visitor-scoped Redis keys for Quick Apply and login in the local Render-shaped environment.
 
+## Staff MFA
+
+- [x] Add encrypted authenticator enrollment for both staff roles, with session revocation on enrollment or replacement.
+- [x] Add the authenticator code to staff sign-in and support requiring it for every active account using the API's environment configuration.
+- [x] Verify the Blueprint schema, all five migrations, the production build, and all 14 tests. Confirm browser sign-in, rejection of invalid codes, atomic rejection of concurrent code reuse, and rejection of legacy password-only sessions when MFA is required.
+- [ ] Enroll the real staff accounts and enable the requirement on Render before accepting live applicant data.
+
 ## Home image
 
 `apps/web/public/car-hauler.webp` was created with built-in ImageGen and appears as an industry illustration.

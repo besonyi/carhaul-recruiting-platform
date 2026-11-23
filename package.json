@@ -12,7 +12,8 @@
     "build": "npm run build -w api && npm run build -w web",
     "test": "npm test -w api",
     "db:deploy": "npm run db:deploy -w api",
-    "staff:create": "npm run staff:create -w api"
+    "staff:create": "npm run staff:create -w api",
+    "staff:mfa": "npm run staff:mfa -w api"
   },
   "devDependencies": {
     "concurrently": "^9.2.1"

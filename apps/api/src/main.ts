@@ -9,11 +9,12 @@ import { JobStatus, Prisma, Role, Stage, Track } from '@prisma/client';
 import type { Request, Response, NextFunction } from 'express';
 import helmet from 'helmet';
 import { z } from 'zod';
-import { carrier, db, notice, quickApplyEnabled } from './config';
+import { carrier, db, mfaKey, mfaRequired, notice, quickApplyEnabled } from './config';
 import { applicationInput, assignmentInput, followUpInput, jobInput, noteInput, staffLogin, stageInput, uuid } from './domain';
 import { draftAnswers, extendedAnswers, extendedProfileFields, extendedSubmission, invitationFor, issueInvitation, revokeInvitation, writeExtended } from './extended-application';
 import { redis, withinLimit } from './integrations';
 import { rateLimitClient, sessionHash, sessionToken, verifyPassword } from './security';
+import { decryptMfaSecret, matchingTotpStep } from './staff-mfa';
 
 function parse<T>(schema: z.ZodType<T>, input: unknown): T {
   const result = schema.safeParse(input);
@@ -28,6 +29,7 @@ async function staff(req: Request, role?: Role) {
   if (!token) throw new UnauthorizedException();
   const session = await db.session.findUnique({ where: { hash: sessionHash(token) }, include: { staff: true } });
   if (!session || session.expiresAt <= new Date() || !session.staff.active) throw new UnauthorizedException();
+  if ((mfaRequired || session.staff.mfaCiphertext) && !session.mfaVerified) throw new UnauthorizedException();
   if (role && session.staff.role !== role) throw new ForbiddenException();
   return { id: session.staffId, role: session.staff.role };
 }
@@ -141,19 +143,39 @@ const dummyHash = '0'.repeat(32) + ':' + '0'.repeat(128);
 class CrmController {
   @Post('login') @HttpCode(200) async login(@Req() req: Request, @Body() input: unknown) {
     await throttle('login:ip:' + clientKey(req), 30, 900);
-    const { email, password } = parse(staffLogin, input);
+    const { email, password, code } = parse(staffLogin, input);
     const normalized = email.toLowerCase();
     await throttle('login:account:' + sessionHash(normalized), 8, 900);
     const account = await db.staff.findUnique({ where: { email: normalized } });
     const valid = await verifyPassword(password, account?.passwordHash ?? dummyHash);
     if (!account?.active || !valid) throw new UnauthorizedException('Invalid email or password.');
+    let step: number | null = null;
+    if (account.mfaCiphertext) {
+      if (!mfaKey) throw new ServiceUnavailableException('Staff sign-in is temporarily unavailable.');
+      let secret: Buffer;
+      try { secret = decryptMfaSecret(account.mfaCiphertext, mfaKey, account.id); }
+      catch { throw new ServiceUnavailableException('Staff sign-in is temporarily unavailable.'); }
+      step = matchingTotpStep(secret, code);
+      if (step === null) throw new UnauthorizedException('Enter a current authenticator code.');
+    } else if (mfaRequired) {
+      throw new ForbiddenException('An administrator must set up MFA for this account.');
+    }
     const token = sessionToken();
     const expiresAt = new Date(Date.now() + 8 * 60 * 60 * 1000);
-    await db.$transaction([
-      db.session.deleteMany({ where: { staffId: account.id, expiresAt: { lte: new Date() } } }),
-      db.session.create({ data: { hash: sessionHash(token), staffId: account.id, expiresAt } }),
-      db.audit.create({ data: { action: 'staff.login', subjectId: account.id, actorId: account.id } }),
-    ]);
+    await db.$transaction(async tx => {
+      if (step !== null) {
+        const accepted = await tx.staff.updateMany({
+          where: { id: account.id, active: true, mfaCiphertext: account.mfaCiphertext, OR: [
+            { mfaLastStep: null }, { mfaLastStep: { lt: step } },
+          ] },
+          data: { mfaLastStep: step },
+        });
+        if (!accepted.count) throw new UnauthorizedException('Enter a new authenticator code.');
+      }
+      await tx.session.deleteMany({ where: { staffId: account.id, expiresAt: { lte: new Date() } } });
+      await tx.session.create({ data: { hash: sessionHash(token), staffId: account.id, expiresAt, mfaVerified: step !== null } });
+      await tx.audit.create({ data: { action: 'staff.login', subjectId: account.id, actorId: account.id } });
+    });
     return { token, expiresAt };
   }
 

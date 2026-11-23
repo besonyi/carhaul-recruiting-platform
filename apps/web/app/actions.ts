@@ -43,7 +43,9 @@ export async function submitApplication(_: Result, form: FormData) {
 
 export async function login(_: Result, form: FormData) {
   const response = await api('/crm/login', {
-    method: 'POST', rateLimited: true, data: { email: get(form, 'email'), password: String(form.get('password') ?? '') },
+    method: 'POST', rateLimited: true, data: {
+      email: get(form, 'email'), password: String(form.get('password') ?? ''), code: optional(form, 'code'),
+    },
   });
   if (!response.ok) return result(response);
   const { token, expiresAt } = await response.json();

@@ -4,6 +4,7 @@ import { test } from 'node:test';
 import { applicationInput, followUpInput, jobInput, stageInput } from '../src/domain';
 import { passwordHash, rateLimitClient, sessionHash, sessionToken, verifyPassword } from '../src/security';
 import { draftAnswers, extendedAnswers, extendedSubmission } from '../src/extended-application';
+import { authenticatorKey, decryptMfaSecret, encryptMfaSecret, matchingTotpStep, readMfaKey } from '../src/staff-mfa';
 
 const applicant = {
   name: 'Test Applicant', phone: '(202) 555-0101', email: 'Applicant@example.test',
@@ -111,4 +112,25 @@ test('separates authenticated visitor quotas and falls back to the peer for unve
   assert.equal(rateLimitClient(peer, [first, second], sign(first), secret), fallback);
   assert.equal(rateLimitClient(peer, 'invalid', sign('invalid'), secret), fallback);
   assert.equal(firstClient.includes(first), false);
+});
+
+test('uses the RFC 6238 code vectors and accepts only nearby time steps', () => {
+  const secret = Buffer.from('12345678901234567890');
+  assert.equal(authenticatorKey(secret), 'GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ');
+  assert.equal(matchingTotpStep(secret, '287082', 59_000), 1);
+  assert.equal(matchingTotpStep(secret, '287082', 89_000), 1);
+  assert.equal(matchingTotpStep(secret, '287082', 119_000), null);
+  assert.equal(matchingTotpStep(secret, '081804', 1_111_111_109_000), 37_037_036);
+});
+
+test('binds encrypted authenticator secrets to the staff account and encryption key', () => {
+  const key = Buffer.alloc(32, 1);
+  const secret = Buffer.alloc(20, 5);
+  const ciphertext = encryptMfaSecret(secret, key, 'staff-a');
+  assert.notEqual(ciphertext, encryptMfaSecret(secret, key, 'staff-a'));
+  assert.deepEqual(decryptMfaSecret(ciphertext, key, 'staff-a'), secret);
+  assert.throws(() => decryptMfaSecret(ciphertext, key, 'staff-b'));
+  assert.throws(() => decryptMfaSecret(ciphertext, Buffer.alloc(32, 2), 'staff-a'));
+  assert.deepEqual(readMfaKey(key.toString('base64')), key);
+  assert.throws(() => readMfaKey('too short'));
 });

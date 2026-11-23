@@ -8,7 +8,8 @@
     "start": "node dist/main.js",
     "test": "tsx --test test/*.test.ts",
     "db:deploy": "prisma migrate deploy",
-    "staff:create": "tsx src/create-staff.ts"
+    "staff:create": "tsx src/create-staff.ts",
+    "staff:mfa": "tsx src/enroll-staff-mfa.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.1.0",
