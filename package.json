@@ -1,0 +1,23 @@
+{
+  "name": "carhaul-recruiting-platform",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "concurrently -k \"npm run dev -w api\" \"npm run dev -w web\"",
+    "build": "npm run build -w api && npm run build -w web",
+    "test": "npm test -w api",
+    "db:deploy": "npm run db:deploy -w api",
+    "staff:create": "npm run staff:create -w api"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  },
+  "overrides": {
+    "effect": "3.22.5"
+  }
+}

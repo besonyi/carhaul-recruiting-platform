@@ -1,0 +1,16 @@
+@import 'tailwindcss';
+
+:root { color-scheme: light; --ink: #14212a; --paper: #f6f5f1; --accent: #ffc45d; }
+body { margin: 0; background: var(--paper); color: var(--ink); font-family: system-ui, sans-serif; }
+a { text-underline-offset: .2em; }
+a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 3px solid #157384; outline-offset: 3px; }
+.shell { width: min(100% - 2rem, 72rem); margin-inline: auto; }
+.display { font-family: "Arial Narrow", Impact, system-ui, sans-serif; line-height: 1; letter-spacing: -.025em; font-weight: 800; }
+.button { display: inline-flex; align-items: center; justify-content: center; min-height: 46px; padding: .65rem 1.1rem; border-radius: .3rem; background: var(--accent); color: #14212a; font-weight: 750; cursor: pointer; }
+.button:hover { background: #ffda97; }
+.button:disabled { opacity: .55; cursor: wait; }
+.panel { background: #fff; border: 1px solid #d6d9d7; border-radius: .55rem; padding: clamp(1rem, 3vw, 2rem); }
+.field { display: grid; gap: .3rem; font-weight: 650; }
+input:not([type=checkbox]), select, textarea { width: 100%; padding: .65rem .7rem; min-height: 44px; border: 1px solid #879399; border-radius: .3rem; background: #fff; color: var(--ink); font-weight: 450; }
+.hero { color: #fff; background: radial-gradient(ellipse at 90% 90%, #284651 0, transparent 60%), #14212a; border-bottom: .45rem solid var(--accent); }
+.rail { border-inline-start: .3rem solid #e7a52b; }

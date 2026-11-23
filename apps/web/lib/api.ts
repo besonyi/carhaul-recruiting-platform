@@ -1,0 +1,37 @@
+import 'server-only';
+import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
+
+export const cookie = 'recruiting_session';
+export type Track = 'COMPANY_DRIVER' | 'OWNER_OPERATOR';
+export type Job = {
+  id: string; slug: string; title: string; track: Track; region: string; requirements: string;
+  schedule: string; equipment: string; compensation?: string | null; status?: string;
+};
+export type Site = { carrier: string; notice: { version: string; statement: string; agreement: string } | null };
+export async function api(path: string, opts: { method?: string; data?: unknown; auth?: boolean; token?: string } = {}) {
+  const token = opts.auth ? (await cookies()).get(cookie)?.value : opts.token;
+  try {
+    return await fetch((process.env.API_URL || 'http://127.0.0.1:4000/api') + path, {
+      method: opts.method || 'GET',
+      cache: 'no-store',
+      signal: AbortSignal.timeout(8000),
+      headers: {
+        ...(token && { Authorization: 'Bearer ' + token }),
+        ...(opts.data !== undefined && { 'Content-Type': 'application/json' }),
+      },
+      body: opts.data === undefined ? undefined : JSON.stringify(opts.data),
+    });
+  } catch { return new Response(null, { status: 503 }); }
+}
+
+export async function staffData<T>(path: string): Promise<T> {
+  const response = await api('/crm' + path, { auth: true });
+  if (response.status === 401) redirect('/crm/login');
+  if (!response.ok) throw new Error('Could not load recruiting data.');
+  return response.json();
+}
+export async function siteData(): Promise<Site> {
+  const response = await api('/site');
+  return response.ok ? response.json() : { carrier: '', notice: null };
+}
