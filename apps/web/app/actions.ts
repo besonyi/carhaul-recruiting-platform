@@ -121,13 +121,20 @@ export async function saveCandidate(_: Result, form: FormData) {
         },
       });
       break;
+    case 'offer-outcome':
+      response = await api(path + '/offers/' + encodeURIComponent(get(form, 'offerId')), {
+        auth: true, method: 'PATCH', data: {
+          status: get(form, 'status'), outcome: optional(form, 'outcome'),
+        },
+      });
+      break;
     default: return { success: false, message: 'Unknown action.' };
   }
   if (response.ok) {
     revalidatePath(path);
     if (action === 'follow-up' || action.endsWith('-follow-up')) revalidatePath('/crm/follow-ups');
     else if (action === 'interview-outcome') revalidatePath('/crm/interviews');
-    else revalidatePath('/crm');
+    else if (action !== 'offer-outcome') revalidatePath('/crm');
   }
   return result(response);
 }
@@ -167,6 +174,18 @@ export async function saveInterview(previous: Result & { id: string }, form: For
   revalidatePath(path);
   revalidatePath('/crm/interviews');
   return { success: true, message: id ? 'Interview rescheduled.' : 'Interview scheduled.', id: id ?? randomUUID() };
+}
+
+export async function saveOffer(previous: Result & { id: string }, form: FormData) {
+  const path = '/crm/candidates/' + encodeURIComponent(get(form, 'candidateId'));
+  const response = await api(path + '/offers', {
+    auth: true, method: 'POST', data: {
+      id: previous.id, position: get(form, 'position'), terms: optional(form, 'terms'), responseDueAt: optional(form, 'responseDueAt'),
+    },
+  });
+  if (!response.ok) return { ...await result(response), id: previous.id };
+  revalidatePath(path);
+  return { success: true, message: 'Offer recorded.', id: randomUUID() };
 }
 
 export async function manageInvitation(_: InvitationResult, form: FormData): Promise<InvitationResult> {

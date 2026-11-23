@@ -7,6 +7,7 @@ import { draftAnswers, extendedAnswers, extendedSubmission } from '../src/extend
 import { authenticatorKey, decryptMfaSecret, encryptMfaSecret, matchingTotpStep, readMfaKey } from '../src/staff-mfa';
 import { reportWindow, summarizeReport } from '../src/recruiting-report';
 import { scheduleInterviewInput, updateInterviewInput } from '../src/interviews';
+import { offerInput, offerOutcomeInput } from '../src/offers';
 
 const applicant = {
   name: 'Test Applicant', phone: '(202) 555-0101', email: 'Applicant@example.test',
@@ -178,4 +179,15 @@ test('validates interview schedules, outcomes and revision numbers', () => {
   assert.equal(updateInterviewInput.safeParse({ action: 'close', revision: 1, status: 'NO_SHOW' }).success, true);
   assert.equal(updateInterviewInput.safeParse({ action: 'close', revision: -1, status: 'COMPLETED' }).success, false);
   assert.equal(updateInterviewInput.safeParse({ action: 'close', revision: 1, status: 'SCHEDULED' }).success, false);
+});
+
+test('validates an offer and accepts only terminal response statuses', () => {
+  const data = { id: crypto.randomUUID(), position: '  CDL-A Driver  ', responseDueAt: '2026-11-25T10:00:00-05:00' };
+  const offer = offerInput.parse(data);
+  assert.equal(offer.position, 'CDL-A Driver');
+  assert.equal(offer.responseDueAt?.toISOString(), '2026-11-25T15:00:00.000Z');
+  assert.equal(offerInput.safeParse({ ...data, responseDueAt: '2026-11-25T10:00:00' }).success, false);
+  assert.equal(offerInput.safeParse({ ...data, status: 'ACCEPTED' }).success, false);
+  assert.equal(offerOutcomeInput.safeParse({ status: 'OPEN' }).success, false);
+  assert.equal(offerOutcomeInput.safeParse({ status: 'DECLINED' }).success, true);
 });

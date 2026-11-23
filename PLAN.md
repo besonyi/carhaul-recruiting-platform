@@ -98,6 +98,12 @@ The production build and all 11 unit tests passed. An isolated PostgreSQL databa
 - [x] Show interview results by scheduled date using the existing period and driving-path filters.
 - [x] Verify nine migrations, the production build, all 18 tests, SQL aggregation, mobile rendering, and compatibility with the previous report response during deployment.
 
+## Candidate offers
+
+- [x] Record offers in the candidate profile with a position, optional terms summary and reply deadline.
+- [x] Record accepted, declined, and withdrawn outcomes with an audit event and keep pipeline decisions under staff control.
+- [x] Verify all ten migrations, the production build, all 19 tests, concurrent outcome protection, and the mobile record-to-outcome workflow.
+
 ## Home image
 
 `apps/web/public/car-hauler.webp` was created with built-in ImageGen and appears as an industry illustration.

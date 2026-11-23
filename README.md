@@ -49,6 +49,10 @@ On a candidate profile, open **Interviews → New interview**. Select the interv
 
 From the candidate profile, reschedule an open meeting or record it as completed, canceled, or a no-show. A no-show can be recorded after the scheduled end. The activity history tracks these actions, and staff control the candidate's recruitment stage separately.
 
+### Track an offer
+
+Use **Offers → New offer** on the candidate profile to record the position, an optional summary of the terms, and an optional reply deadline. The profile flags passed deadlines while the offer awaits a response. Record the result as accepted, declined, or withdrawn, with optional notes. The outcome appears in the activity history. Staff share offer details with candidates through their recruitment process and control the pipeline stage separately.
+
 ### Read the recruiting report
 
 Open **Recruiting report** in the staff navigation and choose the last 7, 30, or 90 UTC calendar days and a driving path. **New candidates** counts distinct profiles created during that period. The stage breakdown and **Currently hired in this group** show where those candidates are now. **Quick applications received** counts submissions during the period, including repeat submissions and submissions from profiles created earlier.

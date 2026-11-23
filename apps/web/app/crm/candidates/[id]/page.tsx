@@ -10,6 +10,7 @@ import { ActionForm } from '../../forms';
 import { LocalDateTimeField, LocalDateTime } from '../../follow-up-fields';
 import { ContactForm } from '../../contact-form';
 import { InterviewForm } from '../../interview-form';
+import { OfferForm } from '../../offer-form';
 import { InvitationForm } from '../../invitation-form';
 
 type Profile = {
@@ -23,6 +24,11 @@ type Profile = {
     outcome: keyof typeof contactOutcomes; summary: string | null; occurredAt: string; author: { email: string };
   }>;
   interviews: Interview[];
+  offers?: Array<{
+    id: string; position: string; terms: string | null; responseDueAt: string | null; createdAt: string;
+    status: 'OPEN' | 'ACCEPTED' | 'DECLINED' | 'WITHDRAWN'; resolvedAt: string | null;
+    outcome: string | null; author: { email: string };
+  }>;
   followUps: Array<{ id: string; title: string; assigneeId: string; dueAt: string; completedAt: string | null; canceledAt: string | null }>;
   audit: Array<{ id: string; action: string; actorId?: string; createdAt: string; data?: { previous?: string; stage?: string; reason?: string; recruiterId?: string } }>;
 };
@@ -49,6 +55,10 @@ const actions: Record<string, string> = {
   'interview.completed': 'Interview completed',
   'interview.no_show': 'Interview recorded as no-show',
   'interview.canceled': 'Interview canceled',
+  'offer.recorded': 'Offer recorded',
+  'offer.accepted': 'Offer accepted',
+  'offer.declined': 'Offer declined',
+  'offer.withdrawn': 'Offer withdrawn',
 };
 const extendedFields = {
   trailerTypes: 'Trailer experience', loadsIndependently: 'Can load and unload independently',
@@ -74,6 +84,7 @@ export default async function CandidatePage({ params }: { params: Promise<{ id: 
   const staff = await staffData<Array<{ id: string; email: string }>>('/staff');
   const person = (staffId?: string) => staff.find(user => user.id === staffId)?.email || 'Staff member';
   const extended = candidate.extendedApplication;
+  const offers = candidate.offers ?? [];
   const invitationActive = Boolean(extended && !extended.revokedAt && !extended.submittedAt && Date.parse(extended.expiresAt) > Date.now());
   return <div>
     <Link className="underline" href="/crm">← Recruitment pipeline</Link>
@@ -178,6 +189,39 @@ export default async function CandidatePage({ params }: { params: Promise<{ id: 
               </ActionForm>
             </details>
           </div>}
+        </li>)}</ul>
+      </section>
+      <section className="panel lg:col-span-2"><h2 className="mb-3 text-xl font-extrabold">Offers</h2>
+        <details className="mb-4">
+          <summary className="cursor-pointer font-semibold underline">New offer</summary>
+          <div className="mt-3"><OfferForm candidateId={id} initialId={randomUUID()} /></div>
+        </details>
+        {offers.length === 0 && <p className="text-sm text-slate-700">No offers recorded yet.</p>}
+        <ul className="grid gap-4">{offers.map(offer => <li key={offer.id} className="border-t border-slate-200 pt-3">
+          <p className="font-bold wrap-anywhere">{offer.position} · {offer.status === 'OPEN' ? 'Awaiting response' : label(offer.status)}</p>
+          <p className="break-words text-sm text-slate-700">Recorded <LocalDateTime value={offer.createdAt} /> · {offer.author.email}</p>
+          {offer.responseDueAt && <p className="text-sm">
+            Reply deadline <LocalDateTime value={offer.responseDueAt} />
+            {offer.status === 'OPEN' && Date.parse(offer.responseDueAt) < Date.now() && <span className="ml-2 font-semibold">Deadline passed</span>}
+          </p>}
+          {offer.resolvedAt && <p className="text-sm">Outcome recorded <LocalDateTime value={offer.resolvedAt} /></p>}
+          {offer.terms && <p className="mt-2 whitespace-pre-wrap wrap-anywhere">{offer.terms}</p>}
+          {offer.outcome && <p className="mt-2 whitespace-pre-wrap wrap-anywhere">{offer.outcome}</p>}
+          {offer.status === 'OPEN' && <details className="mt-3">
+            <summary className="cursor-pointer font-semibold underline">Record offer outcome</summary>
+            <ActionForm action="candidate" submit="Save offer outcome" className="mt-3 grid gap-3">
+              <input type="hidden" name="id" value={id} />
+              <input type="hidden" name="action" value="offer-outcome" />
+              <input type="hidden" name="offerId" value={offer.id} />
+              <label className="field">Offer result<select name="status" defaultValue="" required>
+                <option value="" disabled>Select a result</option>
+                <option value="ACCEPTED">Accepted</option>
+                <option value="DECLINED">Declined</option>
+                <option value="WITHDRAWN">Withdrawn</option>
+              </select></label>
+              <label className="field">Offer outcome notes (optional)<textarea name="outcome" maxLength={1000} /></label>
+            </ActionForm>
+          </details>}
         </li>)}</ul>
       </section>
       <section className="panel lg:col-span-2"><h2 className="mb-3 text-xl font-extrabold">Follow-ups</h2>

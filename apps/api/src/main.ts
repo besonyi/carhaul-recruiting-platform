@@ -14,6 +14,7 @@ import { applicationInput, assignmentInput, contactInput, followUpInput, jobInpu
 import { draftAnswers, extendedAnswers, extendedProfileFields, extendedSubmission, invitationFor, issueInvitation, revokeInvitation, writeExtended } from './extended-application';
 import { redis, withinLimit } from './integrations';
 import { assignedInterviews, scheduleInterview, scheduleInterviewInput, updateInterview, updateInterviewInput } from './interviews';
+import { offerInput, offerOutcomeInput, recordOffer, resolveOffer } from './offers';
 import { recruitingReport, reportPeriods } from './recruiting-report';
 import { rateLimitClient, sessionHash, sessionToken, verifyPassword } from './security';
 import { decryptMfaSecret, matchingTotpStep } from './staff-mfa';
@@ -282,6 +283,10 @@ class CrmController {
           orderBy: [{ scheduledAt: 'desc' }, { id: 'desc' }],
           include: { assignee: { select: { email: true } } },
         },
+        offers: {
+          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+          include: { author: { select: { email: true } } },
+        },
         followUps: { orderBy: [
           { completedAt: { sort: 'asc', nulls: 'first' } }, { canceledAt: { sort: 'asc', nulls: 'first' } },
           { dueAt: 'asc' }, { id: 'asc' },
@@ -367,6 +372,20 @@ class CrmController {
   async interview(@Req() req: Request, @Param('id') rawId: string, @Body() input: unknown) {
     const actor = await staff(req);
     return scheduleInterview(parse(uuid, rawId), actor.id, parse(scheduleInterviewInput, input));
+  }
+
+  @Post('candidates/:id/offers')
+  async offer(@Req() req: Request, @Param('id') rawId: string, @Body() input: unknown) {
+    const actor = await staff(req);
+    return recordOffer(parse(uuid, rawId), actor.id, parse(offerInput, input));
+  }
+
+  @Patch('candidates/:id/offers/:offerId')
+  async offerOutcome(
+    @Req() req: Request, @Param('id') rawId: string, @Param('offerId') rawOfferId: string, @Body() input: unknown,
+  ) {
+    const actor = await staff(req);
+    return resolveOffer(parse(uuid, rawId), parse(uuid, rawOfferId), actor.id, parse(offerOutcomeInput, input));
   }
 
   @Patch('candidates/:id/interviews/:interviewId')
